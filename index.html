@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yalla — Levantine Arabic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1 class="logo">يلا <span class="logo-sub">Levantine Arabic</span></h1>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="today">Today</button>
+      <button class="tab" data-tab="words">Words</button>
+      <button class="tab" data-tab="texts">Texts</button>
+      <button class="tab" data-tab="settings">⚙</button>
+    </nav>
+  </header>
+
+  <main id="main">
+    <!-- TODAY -->
+    <section id="view-today" class="view active">
+      <div id="today-summary"></div>
+      <div id="session" class="hidden"></div>
+    </section>
+
+    <!-- WORDS -->
+    <section id="view-words" class="view">
+      <div class="words-controls">
+        <input type="search" id="word-search" placeholder="Search words… (Arabic or English)">
+        <select id="cat-filter"></select>
+      </div>
+      <div id="word-list"></div>
+    </section>
+
+    <!-- TEXTS -->
+    <section id="view-texts" class="view">
+      <div id="text-list"></div>
+      <div id="text-view" class="hidden"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="view-settings" class="view">
+      <h2>Settings</h2>
+      <div class="setting-row">
+        <label for="set-newperday">New words per day</label>
+        <select id="set-newperday">
+          <option value="4">4</option>
+          <option value="8" selected>8</option>
+          <option value="12">12</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <label for="set-translit">Show transliteration</label>
+        <input type="checkbox" id="set-translit" checked>
+      </div>
+      <div class="setting-row">
+        <label for="set-rate">Speech speed</label>
+        <input type="range" id="set-rate" min="0.5" max="1.2" step="0.1" value="0.8">
+        <span id="rate-label">0.8×</span>
+      </div>
+      <div class="setting-row">
+        <label>Progress</label>
+        <button id="btn-reset" class="btn danger">Reset all progress</button>
+      </div>
+      <p class="about">
+        Vocabulary and texts are in Levantine Arabic (شامي). Definitions and word
+        audio come from open knowledge sources:
+        <a href="https://en.wiktionary.org" target="_blank" rel="noopener">Wiktionary</a> and
+        <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>
+        (Lingua Libre recordings by native speakers, CC&nbsp;BY&#8209;SA). Sentence audio uses your
+        browser's text-to-speech, which is Modern Standard Arabic flavoured — use it as an
+        approximation and prefer the native recordings on single words when offered.
+      </p>
+    </section>
+  </main>
+
+  <!-- Wiktionary modal -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3 id="modal-title" dir="rtl"></h3>
+        <button id="modal-close" class="btn ghost">✕</button>
+      </div>
+      <div id="modal-body">Loading…</div>
+      <a id="modal-link" href="#" target="_blank" rel="noopener" class="wik-link">Open on Wiktionary ↗</a>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
