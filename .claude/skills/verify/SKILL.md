@@ -37,6 +37,12 @@ python3 -m http.server 8090 &   # from the repo root
   `commons.wikimedia.org`, `upload.wikimedia.org`) and fulfill with fixture
   JSON in the real API shapes; abort `fonts.g*.com`. The app must degrade
   gracefully when those routes abort — that's a valid state to assert too.
+- To assert on TTS output (text fed to the engine, chosen voice), stub the
+  engine in `page.addInitScript`: replace `SpeechSynthesisUtterance` with a
+  plain class and install a recording fake via
+  `Object.defineProperty(window, 'speechSynthesis', { value: ... })` —
+  plain assignment silently fails (readonly accessor) and the native engine
+  then rejects the fake utterance class.
 - Headless has no speech-synthesis voices; `speak()` is a silent no-op.
   Audio assertions should target the Commons path: after clicking a speaker
   button, check `localStorage['yalla.audiocache.v1']` and the `.native`

@@ -23,6 +23,25 @@ the dialect of Jordan, Palestine, Lebanon, and Syria — rather than Modern Stan
     your browser's Arabic text-to-speech. Note: browser TTS voices are Modern
     Standard Arabic flavoured, so treat sentence audio as an approximation.
 
+## Pronunciation tuning
+
+MSA-trained TTS voices misread some dialect words — most famously مرحبا, which
+gets classical nunation ("marḥaban") instead of the Levantine *marḥaba*. The
+app corrects this in three ways:
+
+1. **Respelling map** — `TTS_FIXES` in `data.js` substitutes a fully
+   vocalised spelling before speaking (`مرحبا` → `مَرْحَبَا`), which overrides
+   the voice's lexicon. If a word sounds wrong to you, add an entry there
+   (or a per-word `tts` field on the vocab item).
+2. **Urban qāf** — a setting (on by default, matching the transliterations)
+   that converts ق to hamza in the spoken text only, so قهوة is spoken
+   *ʾahwe* rather than *qahwa*. Turn it off if you prefer qāf/g realisations.
+3. **Voice picker** — the app auto-prefers regional Levantine voices
+   (`ar-LB`, `ar-SY`, `ar-JO`, `ar-PS`) when the system has them, and the
+   Settings tab lets you pick one explicitly. Microsoft Edge ships neural
+   voices for all of these and they sound far closer to the dialect than
+   the default MSA voice; Chrome/Safari system voices are usually MSA only.
+
 ## Running it
 
 It's a static site — no build step, no dependencies.

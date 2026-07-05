@@ -12,7 +12,11 @@ const INTERVALS = [0, 1, 3, 7, 14, 30, 60];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 let progress = load(STORE_KEY, {});          // { [wordId]: {box, due} }
-let settings = load(SETTINGS_KEY, { newPerDay: 8, translit: true, rate: 0.8 });
+let settings = load(SETTINGS_KEY, {
+  newPerDay: 8, translit: true, rate: 0.8,
+  urbanQaf: true,   // speak ق as hamza (urban Levantine), matching the transliterations
+  voiceURI: "",     // "" = auto-pick
+});
 let audioCache = load(AUDIO_CACHE_KEY, {});  // { [arabic]: url | "" }
 
 function load(key, fallback) {
@@ -38,18 +42,45 @@ function introducedToday() {
 // ————————————————————— Audio —————————————————————
 
 let voices = [];
-function pickArabicVoice() {
+function arabicVoices() {
   if (!voices.length) voices = speechSynthesis.getVoices();
-  return voices.find(v => /^ar/i.test(v.lang)) || null;
+  return voices.filter(v => /^ar/i.test(v.lang));
+}
+function pickArabicVoice() {
+  const ar = arabicVoices();
+  // User's explicit choice first, then Levantine regional voices (Edge ships
+  // ar-LB/ar-SY/ar-JO neural voices — far closer to the dialect than MSA).
+  return ar.find(v => v.voiceURI === settings.voiceURI) ||
+         ar.find(v => /^ar-(LB|SY|JO|PS)/i.test(v.lang)) ||
+         ar[0] || null;
 }
 if ("speechSynthesis" in window) {
-  speechSynthesis.onvoiceschanged = () => { voices = speechSynthesis.getVoices(); };
+  speechSynthesis.onvoiceschanged = () => {
+    voices = speechSynthesis.getVoices();
+    populateVoicePicker();
+  };
+}
+
+// MSA-trained voices misread some dialect words from their lexicon (e.g.
+// مرحبا → "marḥaban" with classical nunation). Respell those before
+// speaking, and optionally read ق as hamza the way urban Levantine does.
+const AR_LETTER = "\\u0620-\\u064A";
+const TTS_FIX_RULES = Object.entries(TTS_FIXES)
+  .sort((a, b) => b[0].length - a[0].length)
+  .map(([from, to]) =>
+    [new RegExp(`(?<![${AR_LETTER}])${from}(?![${AR_LETTER}])`, "g"), to]);
+
+function ttsText(text) {
+  let out = text;
+  for (const [re, to] of TTS_FIX_RULES) out = out.replace(re, to);
+  if (settings.urbanQaf) out = out.replace(/قا/g, "آ").replace(/ق/g, "أ");
+  return out;
 }
 
 function speak(text, rate = settings.rate) {
   if (!("speechSynthesis" in window)) return;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
+  const u = new SpeechSynthesisUtterance(ttsText(text));
   const v = pickArabicVoice();
   if (v) u.voice = v;
   u.lang = "ar";
@@ -99,7 +130,7 @@ async function playWord(word, btn) {
     try { await currentAudio.play(); if (btn) btn.classList.add("native"); return; }
     catch { /* fall through to TTS */ }
   }
-  const u = speak(word.ar);
+  const u = speak(word.tts || word.ar); // per-word override beats the global fixes
   if (u) u.onend = done; else done();
 }
 
@@ -452,19 +483,40 @@ function stopAll() {
 
 // ————————————————————— Settings —————————————————————
 
+function populateVoicePicker() {
+  const sel = document.getElementById("set-voice");
+  if (!sel || !("speechSynthesis" in window)) return;
+  const ar = arabicVoices();
+  sel.innerHTML =
+    `<option value="">Auto — prefers Levantine (ar-LB/SY/JO) voices</option>` +
+    ar.map(v => `<option value="${esc(v.voiceURI)}"${v.voiceURI === settings.voiceURI ? " selected" : ""}>` +
+      `${esc(v.name)} (${esc(v.lang)})</option>`).join("");
+  if (!ar.length) sel.innerHTML += `<option disabled>no Arabic voices installed</option>`;
+}
+
 function initSettings() {
   const perDay = document.getElementById("set-newperday");
   const translit = document.getElementById("set-translit");
   const rate = document.getElementById("set-rate");
   const rateLabel = document.getElementById("rate-label");
+  const voiceSel = document.getElementById("set-voice");
+  const urbanQaf = document.getElementById("set-urbanqaf");
   perDay.value = String(settings.newPerDay);
   translit.checked = settings.translit;
   rate.value = String(settings.rate);
   rateLabel.textContent = settings.rate + "×";
+  urbanQaf.checked = settings.urbanQaf;
+  populateVoicePicker();
 
   perDay.onchange = () => { settings.newPerDay = +perDay.value; save(SETTINGS_KEY, settings); renderToday(); };
   translit.onchange = () => { settings.translit = translit.checked; save(SETTINGS_KEY, settings); renderWords(); };
   rate.oninput = () => { settings.rate = +rate.value; rateLabel.textContent = rate.value + "×"; save(SETTINGS_KEY, settings); };
+  voiceSel.onchange = () => {
+    settings.voiceURI = voiceSel.value;
+    save(SETTINGS_KEY, settings);
+    speak("مَرْحَبَا"); // preview the chosen voice
+  };
+  urbanQaf.onchange = () => { settings.urbanQaf = urbanQaf.checked; save(SETTINGS_KEY, settings); };
 
   document.getElementById("btn-reset").onclick = () => {
     if (confirm("Reset all learning progress? This cannot be undone.")) {

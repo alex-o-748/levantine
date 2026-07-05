@@ -58,6 +58,14 @@
         <input type="checkbox" id="set-translit" checked>
       </div>
       <div class="setting-row">
+        <label for="set-voice">Arabic voice</label>
+        <select id="set-voice"></select>
+      </div>
+      <div class="setting-row">
+        <label for="set-urbanqaf">Speak ق as hamza (urban pronunciation)</label>
+        <input type="checkbox" id="set-urbanqaf" checked>
+      </div>
+      <div class="setting-row">
         <label for="set-rate">Speech speed</label>
         <input type="range" id="set-rate" min="0.5" max="1.2" step="0.1" value="0.8">
         <span id="rate-label">0.8×</span>
@@ -74,6 +82,10 @@
         (Lingua Libre recordings by native speakers, CC&nbsp;BY&#8209;SA). Sentence audio uses your
         browser's text-to-speech, which is Modern Standard Arabic flavoured — use it as an
         approximation and prefer the native recordings on single words when offered.
+        The app respells dialect words before speaking them (so مرحبا isn't read with
+        classical nunation) and can read ق as a hamza, the urban Levantine way. If your
+        system has regional Arabic voices (Microsoft Edge ships ar&#8209;LB / ar&#8209;SY /
+        ar&#8209;JO ones), pick one above — they sound much closer to the dialect.
       </p>
     </section>
   </main>
