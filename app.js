@@ -43,9 +43,13 @@ function introducedToday() {
 
 let voices = [];
 function arabicVoices() {
-  if (!voices.length) voices = speechSynthesis.getVoices();
-  return voices.filter(v => /^ar/i.test(v.lang));
+  // Never cache an empty list: Chrome/Safari populate voices asynchronously
+  // and answer getVoices() with [] for the first moments after load.
+  const live = ("speechSynthesis" in window) ? speechSynthesis.getVoices() : [];
+  if (live.length) voices = live;
+  return voices.filter(v => /^ar/i.test(v.lang) || /arab|عرب/i.test(v.name));
 }
+function hasArabicVoice() { return arabicVoices().length > 0; }
 // Voices that accepted an utterance but never actually spoke. Chrome lists
 // some voices (typically network-backed ones) that silently produce nothing:
 // no audio, no error event. They're dropped from the rotation once caught.
@@ -68,6 +72,15 @@ if ("speechSynthesis" in window) {
     voices = speechSynthesis.getVoices();
     populateVoicePicker();
   };
+  // onvoiceschanged is unreliable — it may fire before this script runs, or
+  // not at all. Poll briefly after load so the picker and the hint reflect
+  // what's really installed rather than an empty first answer.
+  let polls = 0;
+  const poll = setInterval(() => {
+    const n = speechSynthesis.getVoices().length;
+    if (n) { voices = speechSynthesis.getVoices(); populateVoicePicker(); }
+    if (n || ++polls > 12) clearInterval(poll);
+  }, 400);
 }
 
 // MSA-trained voices misread some dialect words from their lexicon (e.g.
@@ -92,9 +105,9 @@ function ttsText(text) {
 function speak(text, rate = settings.rate) {
   if (!("speechSynthesis" in window)) return null;
   speechSynthesis.cancel();
-  const candidates = voiceCandidates();
-  const handle = { onend: null, onerror: null };
+  const handle = { onend: null, onerror: null, started: false };
   const finish = () => { if (handle.onend) handle.onend(); };
+  let candidates = [];
 
   const say = i => {
     const voice = candidates[i] || null; // past the end: let the browser choose
@@ -102,7 +115,7 @@ function speak(text, rate = settings.rate) {
     if (voice) { u.voice = voice; u.lang = voice.lang; } else { u.lang = "ar"; }
     u.rate = rate;
     let started = false;
-    u.onstart = () => { started = true; };
+    u.onstart = () => { started = true; handle.started = true; };
     u.onend = u.onerror = finish;
     speechSynthesis.speak(u);
     // Watchdog: if nothing is speaking or queued shortly after, this voice
@@ -113,36 +126,65 @@ function speak(text, rate = settings.rate) {
       say(i + 1);
     }, 1400);
   };
-  say(0);
+
+  const begin = () => { candidates = voiceCandidates(); say(0); };
+  // Speaking before the voice list has loaded picks no voice at all, which on
+  // some browsers is simply silent — so give the list a moment to arrive when
+  // audio is requested immediately after page load.
+  if (!speechSynthesis.getVoices().length) {
+    let waited = 0;
+    const wait = setInterval(() => {
+      if (speechSynthesis.getVoices().length || (waited += 200) >= 2000) {
+        clearInterval(wait);
+        begin();
+      }
+    }, 200);
+  } else begin();
   return handle;
 }
 
-// Look up a native-speaker recording on Wikimedia Commons (Lingua Libre —
-// files are tagged with the Levantine language codes ajp/apc). Cached.
+const COMMONS_API = "https://commons.wikimedia.org/w/api.php?origin=*&action=query&format=json";
+
+async function commonsSearchFile(query, signal) {
+  const res = await fetch(
+    COMMONS_API + "&list=search&srnamespace=6&srlimit=1&srsearch=" + encodeURIComponent(query),
+    { signal });
+  const hit = (await res.json())?.query?.search?.[0];
+  if (!hit) return "";
+  const info = await fetch(
+    COMMONS_API + "&prop=imageinfo&iiprop=url&titles=" + encodeURIComponent(hit.title),
+    { signal }).then(r => r.json());
+  return Object.values(info?.query?.pages || {})[0]?.imageinfo?.[0]?.url || "";
+}
+
+// Find a native-speaker recording on Wikimedia Commons. Levantine recordings
+// (Lingua Libre language codes ajp/apc) are preferred, but any Arabic Lingua
+// Libre recording beats no audio at all — especially on devices with no
+// Arabic speech voice installed, where recordings are the only sound there is.
+// Cached as {u: url, l: isLevantine}; "" means "looked, found nothing".
 async function findCommonsAudio(arabic) {
-  if (arabic in audioCache) return audioCache[arabic] || null;
+  if (arabic in audioCache) {
+    const hit = audioCache[arabic];
+    if (!hit) return null;
+    return typeof hit === "string" ? { url: hit, levantine: true } // legacy cache
+                                   : { url: hit.u, levantine: hit.l };
+  }
   const word = arabic.replace(/[؟!،.]/g, "").trim();
-  const query = `intitle:"${word}" (intitle:"ajp" OR intitle:"apc") filetype:audio`;
-  const url = "https://commons.wikimedia.org/w/api.php?origin=*&action=query&format=json" +
-    "&list=search&srnamespace=6&srlimit=1&srsearch=" + encodeURIComponent(query);
   // Hard deadline: a slow or blocked Commons must never hold up playback.
   const signal = AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined;
   try {
-    const res = await fetch(url, { signal });
-    const data = await res.json();
-    const hit = data?.query?.search?.[0];
-    let fileUrl = "";
-    if (hit) {
-      const info = await fetch(
-        "https://commons.wikimedia.org/w/api.php?origin=*&action=query&format=json&prop=imageinfo&iiprop=url&titles=" +
-        encodeURIComponent(hit.title), { signal }
-      ).then(r => r.json());
-      const pages = info?.query?.pages || {};
-      fileUrl = Object.values(pages)[0]?.imageinfo?.[0]?.url || "";
+    let levantine = true;
+    let fileUrl = await commonsSearchFile(
+      `intitle:"${word}" (intitle:"ajp" OR intitle:"apc") filetype:audio`, signal);
+    if (!fileUrl) {
+      // "LL-Q" prefixes every Lingua Libre file, so this catches recordings in
+      // any Arabic variety without matching unrelated media.
+      levantine = false;
+      fileUrl = await commonsSearchFile(`intitle:"${word}" intitle:"LL-Q" filetype:audio`, signal);
     }
-    audioCache[arabic] = fileUrl;
+    audioCache[arabic] = fileUrl ? { u: fileUrl, l: levantine } : "";
     save(AUDIO_CACHE_KEY, audioCache);
-    return fileUrl || null;
+    return fileUrl ? { url: fileUrl, levantine } : null;
   } catch {
     return null; // offline / API hiccup — don't cache, retry next time
   }
@@ -176,12 +218,13 @@ async function playWord(word, btn) {
   if (btn) { btn.classList.add("playing"); btn.classList.remove("native"); }
   const done = () => btn && btn.classList.remove("playing");
   try {
-    const nativeUrl = await findCommonsAudio(word.ar);
-    if (nativeUrl) {
-      const audio = await tryPlayRecording(nativeUrl);
+    const rec = await findCommonsAudio(word.ar);
+    if (rec) {
+      const audio = await tryPlayRecording(rec.url);
       if (audio) {
         audio.onended = audio.onerror = done;
-        if (btn) btn.classList.add("native");
+        // The gold ring means a Levantine speaker specifically.
+        if (btn && rec.levantine) btn.classList.add("native");
         return;
       }
       // Bad URL/codec — forget it so the next click retries the lookup.
@@ -258,6 +301,8 @@ document.getElementById("tabs").addEventListener("click", e => {
   document.querySelectorAll(".view").forEach(v =>
     v.classList.toggle("active", v.id === "view-" + btn.dataset.tab));
   if (btn.dataset.tab === "today") renderToday();
+  // Voices may have finished loading since boot — re-read them on arrival.
+  if (btn.dataset.tab === "settings") populateVoicePicker();
 });
 
 // ————————————————————— Today / flashcard session —————————————————————
@@ -456,6 +501,10 @@ function openText(text) {
     <p class="muted listen-hint" id="listen-hint">
       🎧 Listen first. Tap ▶ on a line to hear it, tap the blurred line to reveal it.
     </p>
+    <p class="voice-hint warn ${hasArabicVoice() ? "hidden" : ""}" id="no-voice-warning">
+      🔇 No Arabic voice found on this device, so these lines can't be spoken.
+      See Settings → Arabic voice.
+    </p>
     <div class="lines" id="lines">
       ${text.lines.map((l, i) => `
         <div class="line" data-i="${i}">
@@ -555,10 +604,34 @@ function populateVoicePicker() {
   hint.textContent = ar.length
     ? `${ar.length} Arabic voice${ar.length === 1 ? "" : "s"} available. Hit Test — if you hear ` +
       `nothing, pick another one; “online” voices need a working connection.`
-    : "No Arabic voice is installed on this device, so speech will be silent. " +
-      "Install an Arabic language pack (Windows/Android settings), or use Microsoft Edge, " +
-      "which ships Levantine voices. Native word recordings from Wikimedia still work.";
+    : "No Arabic voice found on this device — hit Test to confirm. Word audio still works " +
+      "(native recordings from Wikimedia), but sentences need a voice: install an Arabic " +
+      "language pack in your system settings, or open this page in Microsoft Edge, which " +
+      "ships Levantine voices of its own.";
   hint.classList.toggle("warn", !ar.length);
+}
+
+// Speech is fire-and-forget, so the only honest way to answer "is audio
+// working?" is to speak and watch whether it actually started.
+function testVoice() {
+  const hint = document.getElementById("voice-hint");
+  const handle = speak("مرحبا، كيفك؟");
+  if (!hint) return;
+  hint.textContent = "Testing…";
+  hint.classList.remove("warn");
+  setTimeout(() => {
+    if (handle && handle.started) {
+      const v = pickArabicVoice();
+      hint.textContent = "✅ Speech is working" + (v ? ` — voice: ${v.name} (${v.lang}).` : ".");
+      hint.classList.remove("warn");
+    } else {
+      hint.textContent = "🔇 Nothing was spoken. This device has no working Arabic voice, so " +
+        "sentence audio won't play. Word audio still works via native Wikimedia recordings. " +
+        "To get speech: install an Arabic language pack in your system settings, or open this " +
+        "page in Microsoft Edge (it ships ar-LB/ar-SY/ar-JO voices).";
+      hint.classList.add("warn");
+    }
+  }, 2600);
 }
 
 function initSettings() {
@@ -584,7 +657,7 @@ function initSettings() {
     save(SETTINGS_KEY, settings);
     speak("مرحبا"); // preview the chosen voice
   };
-  document.getElementById("btn-testvoice").onclick = () => speak("مرحبا، كيفك؟");
+  document.getElementById("btn-testvoice").onclick = testVoice;
   urbanQaf.onchange = () => { settings.urbanQaf = urbanQaf.checked; save(SETTINGS_KEY, settings); };
 
   document.getElementById("btn-reset").onclick = () => {
