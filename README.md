@@ -36,11 +36,16 @@ app corrects this in three ways:
 2. **Urban qāf** — a setting (on by default, matching the transliterations)
    that converts ق to hamza in the spoken text only, so قهوة is spoken
    *ʾahwe* rather than *qahwa*. Turn it off if you prefer qāf/g realisations.
-3. **Voice picker** — the app auto-prefers regional Levantine voices
+3. **Voice picker** — the app auto-prefers *locally installed* regional Levantine voices
    (`ar-LB`, `ar-SY`, `ar-JO`, `ar-PS`) when the system has them, and the
    Settings tab lets you pick one explicitly. Microsoft Edge ships neural
    voices for all of these and they sound far closer to the dialect than
    the default MSA voice; Chrome/Safari system voices are usually MSA only.
+   Some browsers list voices that accept an utterance and then silently play
+   nothing (typically network-backed ones), so playback watchdogs each voice
+   and moves to the next candidate if speech never starts — ending at the
+   browser default. **Settings → Test** speaks a sample through the current
+   voice if you want to check one by hand.
 
 ## Running it
 

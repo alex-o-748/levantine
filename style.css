@@ -249,6 +249,8 @@ main { max-width: 680px; margin: 0 auto; padding: 1.2rem 1rem 4rem; }
 }
 .setting-row label:first-child { flex: 1; font-weight: 600; }
 .setting-row select, .setting-row input[type="range"] { font: inherit; }
+.voice-hint { font-size: .82rem; color: var(--muted); padding: .5rem 0; }
+.voice-hint.warn { color: var(--danger); }
 .about { margin-top: 1.5rem; font-size: .88rem; color: var(--muted); }
 
 /* ——— Modal ——— */

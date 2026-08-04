@@ -46,14 +46,23 @@ function arabicVoices() {
   if (!voices.length) voices = speechSynthesis.getVoices();
   return voices.filter(v => /^ar/i.test(v.lang));
 }
-function pickArabicVoice() {
-  const ar = arabicVoices();
-  // User's explicit choice first, then Levantine regional voices (Edge ships
-  // ar-LB/ar-SY/ar-JO neural voices — far closer to the dialect than MSA).
-  return ar.find(v => v.voiceURI === settings.voiceURI) ||
-         ar.find(v => /^ar-(LB|SY|JO|PS)/i.test(v.lang)) ||
-         ar[0] || null;
+// Voices that accepted an utterance but never actually spoke. Chrome lists
+// some voices (typically network-backed ones) that silently produce nothing:
+// no audio, no error event. They're dropped from the rotation once caught.
+const deadVoices = new Set();
+
+// Ordered list to try: the user's pick first, then Levantine regional voices
+// (Edge ships ar-LB/ar-SY/ar-JO neural ones), preferring locally installed
+// voices at each step since network voices are the ones that tend to fail.
+function voiceCandidates() {
+  const ar = arabicVoices().filter(v => !deadVoices.has(v.voiceURI));
+  const chosen = ar.find(v => v.voiceURI === settings.voiceURI);
+  const rank = v =>
+    (/^ar-(LB|SY|JO|PS)/i.test(v.lang) ? 0 : 2) + (v.localService === false ? 1 : 0);
+  const rest = ar.filter(v => v !== chosen).sort((a, b) => rank(a) - rank(b));
+  return chosen ? [chosen, ...rest] : rest;
 }
+function pickArabicVoice() { return voiceCandidates()[0] || null; }
 if ("speechSynthesis" in window) {
   speechSynthesis.onvoiceschanged = () => {
     voices = speechSynthesis.getVoices();
@@ -77,16 +86,35 @@ function ttsText(text) {
   return out;
 }
 
+// Speaks `text`, walking down the candidate list if a voice turns out to be
+// silent. Returns a handle whose `onend` fires once speech finishes (or once
+// every candidate has been exhausted), so callers can chain playback.
 function speak(text, rate = settings.rate) {
-  if (!("speechSynthesis" in window)) return;
+  if (!("speechSynthesis" in window)) return null;
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(ttsText(text));
-  const v = pickArabicVoice();
-  if (v) u.voice = v;
-  u.lang = "ar";
-  u.rate = rate;
-  speechSynthesis.speak(u);
-  return u;
+  const candidates = voiceCandidates();
+  const handle = { onend: null, onerror: null };
+  const finish = () => { if (handle.onend) handle.onend(); };
+
+  const say = i => {
+    const voice = candidates[i] || null; // past the end: let the browser choose
+    const u = new SpeechSynthesisUtterance(ttsText(text));
+    if (voice) { u.voice = voice; u.lang = voice.lang; } else { u.lang = "ar"; }
+    u.rate = rate;
+    let started = false;
+    u.onstart = () => { started = true; };
+    u.onend = u.onerror = finish;
+    speechSynthesis.speak(u);
+    // Watchdog: if nothing is speaking or queued shortly after, this voice
+    // swallowed the utterance — retire it and try the next one.
+    if (voice) setTimeout(() => {
+      if (started || speechSynthesis.speaking || speechSynthesis.pending) return;
+      deadVoices.add(voice.voiceURI);
+      say(i + 1);
+    }, 1400);
+  };
+  say(0);
+  return handle;
 }
 
 // Look up a native-speaker recording on Wikimedia Commons (Lingua Libre —
@@ -97,15 +125,17 @@ async function findCommonsAudio(arabic) {
   const query = `intitle:"${word}" (intitle:"ajp" OR intitle:"apc") filetype:audio`;
   const url = "https://commons.wikimedia.org/w/api.php?origin=*&action=query&format=json" +
     "&list=search&srnamespace=6&srlimit=1&srsearch=" + encodeURIComponent(query);
+  // Hard deadline: a slow or blocked Commons must never hold up playback.
+  const signal = AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined;
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal });
     const data = await res.json();
     const hit = data?.query?.search?.[0];
     let fileUrl = "";
     if (hit) {
       const info = await fetch(
         "https://commons.wikimedia.org/w/api.php?origin=*&action=query&format=json&prop=imageinfo&iiprop=url&titles=" +
-        encodeURIComponent(hit.title)
+        encodeURIComponent(hit.title), { signal }
       ).then(r => r.json());
       const pages = info?.query?.pages || {};
       fileUrl = Object.values(pages)[0]?.imageinfo?.[0]?.url || "";
@@ -119,17 +149,46 @@ async function findCommonsAudio(arabic) {
 }
 
 let currentAudio = null;
+
+// play() resolving only means playback was allowed to begin — a 404, a codec
+// the browser can't decode, or a stalled download all resolve and then go
+// quiet. Wait for an actual `playing` event before trusting the recording.
+function tryPlayRecording(url) {
+  return new Promise(resolve => {
+    const audio = new Audio(url);
+    currentAudio = audio;
+    let settled = false;
+    const finish = ok => {
+      if (settled) return;
+      settled = true;
+      if (!ok && currentAudio === audio) currentAudio = null;
+      resolve(ok ? audio : null);
+    };
+    audio.onplaying = () => finish(true);
+    audio.onerror = () => finish(false);
+    setTimeout(() => finish(false), 3000);
+    audio.play().catch(() => finish(false));
+  });
+}
+
 async function playWord(word, btn) {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-  if (btn) btn.classList.add("playing");
+  if (btn) { btn.classList.add("playing"); btn.classList.remove("native"); }
   const done = () => btn && btn.classList.remove("playing");
-  const nativeUrl = await findCommonsAudio(word.ar);
-  if (nativeUrl) {
-    currentAudio = new Audio(nativeUrl);
-    currentAudio.onended = currentAudio.onerror = done;
-    try { await currentAudio.play(); if (btn) btn.classList.add("native"); return; }
-    catch { /* fall through to TTS */ }
-  }
+  try {
+    const nativeUrl = await findCommonsAudio(word.ar);
+    if (nativeUrl) {
+      const audio = await tryPlayRecording(nativeUrl);
+      if (audio) {
+        audio.onended = audio.onerror = done;
+        if (btn) btn.classList.add("native");
+        return;
+      }
+      // Bad URL/codec — forget it so the next click retries the lookup.
+      delete audioCache[word.ar];
+      save(AUDIO_CACHE_KEY, audioCache);
+    }
+  } catch { /* fall through to speech synthesis */ }
   const u = speak(word.tts || word.ar); // per-word override beats the global fixes
   if (u) u.onend = done; else done();
 }
@@ -485,13 +544,21 @@ function stopAll() {
 
 function populateVoicePicker() {
   const sel = document.getElementById("set-voice");
+  const hint = document.getElementById("voice-hint");
   if (!sel || !("speechSynthesis" in window)) return;
   const ar = arabicVoices();
   sel.innerHTML =
     `<option value="">Auto — prefers Levantine (ar-LB/SY/JO) voices</option>` +
     ar.map(v => `<option value="${esc(v.voiceURI)}"${v.voiceURI === settings.voiceURI ? " selected" : ""}>` +
-      `${esc(v.name)} (${esc(v.lang)})</option>`).join("");
-  if (!ar.length) sel.innerHTML += `<option disabled>no Arabic voices installed</option>`;
+      `${esc(v.name)} (${esc(v.lang)}${v.localService === false ? ", online" : ""})</option>`).join("");
+  if (!hint) return;
+  hint.textContent = ar.length
+    ? `${ar.length} Arabic voice${ar.length === 1 ? "" : "s"} available. Hit Test — if you hear ` +
+      `nothing, pick another one; “online” voices need a working connection.`
+    : "No Arabic voice is installed on this device, so speech will be silent. " +
+      "Install an Arabic language pack (Windows/Android settings), or use Microsoft Edge, " +
+      "which ships Levantine voices. Native word recordings from Wikimedia still work.";
+  hint.classList.toggle("warn", !ar.length);
 }
 
 function initSettings() {
@@ -513,9 +580,11 @@ function initSettings() {
   rate.oninput = () => { settings.rate = +rate.value; rateLabel.textContent = rate.value + "×"; save(SETTINGS_KEY, settings); };
   voiceSel.onchange = () => {
     settings.voiceURI = voiceSel.value;
+    deadVoices.delete(voiceSel.value); // give an explicitly chosen voice a fresh chance
     save(SETTINGS_KEY, settings);
-    speak("مَرْحَبَا"); // preview the chosen voice
+    speak("مرحبا"); // preview the chosen voice
   };
+  document.getElementById("btn-testvoice").onclick = () => speak("مرحبا، كيفك؟");
   urbanQaf.onchange = () => { settings.urbanQaf = urbanQaf.checked; save(SETTINGS_KEY, settings); };
 
   document.getElementById("btn-reset").onclick = () => {
