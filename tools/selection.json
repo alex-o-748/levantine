@@ -1,0 +1,31 @@
+{
+ "_comment": [
+  "Which recordings the app ships. One speaker per lesson, so a lesson has a",
+  "consistent voice while the course as a whole stays multi-speaker — learners",
+  "generalise better from varied talkers than from one.",
+  "",
+  "\"words\": \"*\" takes everything that speaker recorded. Name words explicitly",
+  "to curate a subset. Run `python3 tools/build_audio.py --report` to see who",
+  "recorded what."
+ ],
+ "lessons": [
+  {
+   "id": "people",
+   "title": "People, pronouns & politeness",
+   "speaker": "AdrianAbdulBaha (MahmoudM)",
+   "words": "*"
+  },
+  {
+   "id": "food",
+   "title": "Food & drink",
+   "speaker": "AdrianAbdulBaha (IbrahimZ)",
+   "words": "*"
+  },
+  {
+   "id": "time",
+   "title": "Time & when things happen",
+   "speaker": "AdrianAbdulBaha (AseelF)",
+   "words": "*"
+  }
+ ]
+}
