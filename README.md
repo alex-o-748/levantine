@@ -71,33 +71,49 @@ Deploy from a branch*, pick the branch and `/ (root)`.
 | `data.js` | The vocabulary (`VOCAB`) and listening texts (`TEXTS`) |
 | `app.js` | Flashcards, spaced repetition, audio, Wiktionary API client |
 | `style.css` | Styling (light/dark, RTL-aware) |
-| `tools/fetch-commons-audio.py` | Bulk-index (and optionally download) a Lingua Libre speaker's recordings |
+| `tools/fetch-commons-audio.py` | Fetch a Lingua Libre speaker's recordings from Commons into `corpus/` |
+| `tools/build_audio.py` | Turn `corpus/` into the clips the app ships (`audio/` + manifest) |
+| `tools/make_review.py` | Build a listening-review page for every clip |
 
-### Bulk audio from Commons
+### Where word audio comes from
 
-Searching Commons one word at a time costs two API calls per word — fine for
-a handful of cards, slow and online-only at scale. A single Lingua Libre
-speaker's category holds thousands of recordings whose *filenames already name
-the word*, so one pass over the category gives a complete word → file map:
+Words with a recording play a real South Levantine speaker; everything else,
+and every sentence, falls back to the browser's Arabic voice. Recordings are
+chosen at **build time** and ship with the app, so every learner hears the same
+clip and hears it immediately — no lookup, no network, and it works offline.
+
+The pipeline has two halves. Acquisition pulls recordings into `corpus/`, which
+is gitignored:
 
 ```sh
-# ~10 API calls, no media downloaded: writes audio-index.json
+# see what a speaker's category holds (~10 API calls, nothing downloaded)
 python3 tools/fetch-commons-audio.py
 
-# same, plus the wav files themselves into audio/
+# fetch it into corpus/commons/
 python3 tools/fetch-commons-audio.py --download
 ```
 
-Drop `audio-index.json` in the repo root and the app uses it automatically:
-an indexed word plays instantly with no network round-trip, and only a miss
-falls back to the live search. The file is optional — without it (or when
-`index.html` is opened over `file://`, where `fetch` can't read it) nothing
-breaks, the app just searches as it always did. `audio/` is gitignored;
-`audio-index.json` is small and meant to be committed.
+Production selects, trims, level-matches and transcodes what the app ships:
 
-The index is grouped by Lingua Libre language code, so the app can keep
-preferring Levantine (`ajp`/`apc`) over other Arabic varieties — the gold ring
-on the speaker button still means a Levantine speaker specifically:
+```sh
+python3 tools/build_audio.py --report   # who recorded what
+python3 tools/build_audio.py            # write audio/ + audio/manifest.json
+```
+
+`tools/selection.json` decides which recordings make it: one speaker per lesson
+so a lesson keeps a consistent voice, `"speaker": "*"` to pool everyone for
+supplementary words, and `exclude` to reject a clip a listening pass rejected.
+Both a Lingua Libre dataset zip and a flat Commons download index the same way.
+
+Clips are 24 kHz mono MP3 rather than the source Ogg: Safari and iOS play Ogg
+unreliably, and contributors record at levels spanning several dB, which makes
+a lesson lurch in volume from card to card. `audio/` and its manifest are
+committed — about 1 MB — and the manifest carries the speaker and CC-BY-SA
+attribution for every clip, which Settings displays.
+
+Run `python3 tools/make_review.py` to build `build/review.html`: every clip
+embedded as a data URI, playable with no server, for marking clips keep, unsure
+or drop before they ship.
 
 ```json
 {"base": "https://upload.wikimedia.org/wikipedia/commons/",

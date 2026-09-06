@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
-"""Build an offline index (and optionally a local copy) of a Lingua Libre
-pronunciation category on Wikimedia Commons.
+"""Fetch a Lingua Libre pronunciation category from Wikimedia Commons.
 
-The app currently finds recordings with two live Commons search calls per word,
-which is slow, fails offline, and only ever finds one file at a time. A whole
-speaker's category is a few thousand files whose names already say which word
-they are, so one pass over the category gives a word -> file map for everything
-that speaker ever recorded.
+This is the acquisition half of the audio pipeline: it pulls recordings into
+corpus/, where tools/build_audio.py selects, levels and transcodes the ones the
+app ships. A whole speaker's category is a few thousand files whose names
+already say which word they are, so one pass over the category collects
+everything that speaker ever recorded — no dataset download by hand, and it
+runs anywhere with network access, including CI.
 
-    # index only (~10 API calls, no media downloaded)
+    # see what is there (~10 API calls, no media downloaded)
     python3 tools/fetch-commons-audio.py
 
-    # index + download the wav files into audio/
+    # fetch it into corpus/commons/, then build what the app ships
     python3 tools/fetch-commons-audio.py --download
+    python3 tools/build_audio.py
 
 Stdlib only, to match the rest of this repo. Re-running is cheap: already
 downloaded files with the right size are skipped.
+
+Writing a word -> URL index (--index) is still supported, but the app no longer
+reads one: hotlinked Commons files are Ogg, which Safari and iOS play
+unreliably, and arrive at whatever level the contributor recorded at. Shipping
+transcoded, level-matched clips is what build_audio.py is for.
 """
 
 import argparse
@@ -146,9 +152,11 @@ def main():
     ap.add_argument("--speaker", default=None,
                     help="speaker name as it appears in filenames "
                          "(default: taken from the category name)")
-    ap.add_argument("--index", default="audio-index.json", help="where to write the word map")
+    ap.add_argument("--index", default="", metavar="PATH",
+                    help="also write a word -> URL map here (the app does not read one)")
     ap.add_argument("--download", action="store_true", help="also fetch the media files")
-    ap.add_argument("--out", default="audio", help="directory for downloaded files")
+    ap.add_argument("--out", default="corpus/commons",
+                    help="directory for downloaded files (build_audio.py reads corpus/)")
     ap.add_argument("--jobs", type=int, default=4, help="parallel downloads (keep this modest)")
     ap.add_argument("--limit", type=int, default=0, help="stop after N files (for testing)")
     ap.add_argument("--contact", default="https://github.com/alex-o-748/levantine",
@@ -210,12 +218,13 @@ def main():
         "count": distinct,
         "words": words,
     }
-    with open(args.index, "w", encoding="utf-8") as fh:
-        json.dump(index, fh, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-    print("Wrote %s: %d distinct words across %d language(s)%s (%.0f KB)" % (
-        args.index, distinct, len(words),
-        ", %d duplicate recordings dropped" % dupes if dupes else "",
-        os.path.getsize(args.index) / 1e3))
+    if args.index:
+        with open(args.index, "w", encoding="utf-8") as fh:
+            json.dump(index, fh, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+        print("Wrote %s: %d distinct words across %d language(s)%s (%.0f KB)" % (
+            args.index, distinct, len(words),
+            ", %d duplicate recordings dropped" % dupes if dupes else "",
+            os.path.getsize(args.index) / 1e3))
 
     if not args.download:
         print("\nIndex only. Re-run with --download to fetch the audio itself.")

@@ -5,9 +5,6 @@
 
 const STORE_KEY = "yalla.progress.v1";
 const SETTINGS_KEY = "yalla.settings.v1";
-// v2: v1 also cached "looked, found nothing" results, which would otherwise
-// hide words the bundled audio index can now answer instantly.
-const AUDIO_CACHE_KEY = "yalla.audiocache.v2";
 
 // Leitner boxes → review interval in days. Box 0 = new/again.
 const INTERVALS = [0, 1, 3, 7, 14, 30, 60];
@@ -19,7 +16,6 @@ let settings = load(SETTINGS_KEY, {
   urbanQaf: true,   // speak ق as hamza (urban Levantine), matching the transliterations
   voiceURI: "",     // "" = auto-pick
 });
-let audioCache = load(AUDIO_CACHE_KEY, {});  // { [arabic]: url | "" }
 
 function load(key, fallback) {
   try { return { ...fallback, ...JSON.parse(localStorage.getItem(key) || "{}") }; }
@@ -33,8 +29,15 @@ function dueWords() {
   const now = Date.now();
   return VOCAB.filter(w => progress[w.id] && progress[w.id].due <= now);
 }
+// Words with a recording come first. A learner meeting a word for the first
+// time should hear a person say it, not a Modern Standard voice guessing at
+// the dialect — order is the only lever we have, since the recordings cover
+// two thirds of the list and the untouched half of it sits at the front.
 function newWords(limit) {
-  return VOCAB.filter(w => !progress[w.id]).slice(0, limit);
+  const fresh = VOCAB.filter(w => !progress[w.id]);
+  const spoken = fresh.filter(w => clips.has(normAr(w.ar)));
+  return (spoken.length ? spoken.concat(fresh.filter(w => !clips.has(normAr(w.ar)))) : fresh)
+    .slice(0, limit);
 }
 // New words already introduced today still count against the daily budget.
 function introducedToday() {
@@ -145,107 +148,37 @@ function speak(text, rate = settings.rate) {
   return handle;
 }
 
-// Lingua Libre language codes for the dialect this app teaches. Recordings in
-// other Arabic varieties still play, just without the "native Levantine" ring.
-const LEVANTINE_ISO = ["ajp", "apc"];
+// ————————————————————— Recordings —————————————————————
 
-// Diacritics, tatweel and punctuation appear in recording filenames but not in
-// VOCAB, so both sides are folded before matching. Mirrors normalize() in
-// tools/fetch-commons-audio.py — keep the two in step.
-function normalizeArabic(word) {
-  return word.replace(/[ً-ْٰـ]/g, "")
-             .replace(/[،؛؟!?.,'"()[\]]/g, "")
-             .trim();
-}
+// Word audio ships with the app: tools/build_audio.py picks one recording per
+// word from the Lingua Libre corpus, levels it and writes audio/manifest.json.
+// Nothing is searched for at play time, so every learner hears the same clip
+// and hears it immediately — the old live Commons lookup gave neither.
+let clips = new Map();          // normAr(word) -> { file, speaker }
+let credits = [];               // speakers to name, per CC BY-SA
+const clipsReady = fetch("audio/manifest.json")
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(m => {
+    for (const lesson of m.lessons || [])
+      for (const c of lesson.clips || [])
+        clips.set(normAr(c.ar), { file: c.file, speaker: c.speaker });
+    credits = [...new Set([...clips.values()].map(c => c.speaker))].sort();
+    renderCredits();
+  })
+  .catch(() => { /* no manifest: every word falls back to speech synthesis */ });
 
-// ————— Bundled audio index —————
-// tools/fetch-commons-audio.py maps a whole Lingua Libre speaker's category to
-// { words: { iso: { word: urlSuffix } } }. It's optional: without it the app
-// falls back to searching Commons a word at a time, exactly as before.
+function clipFor(word) { return clips.get(normAr(word.ar)); }
 
-const AUDIO_INDEX_URL = "audio-index.json";
-
-let audioIndex;         // undefined = not tried yet, null = unavailable
-let audioIndexPending;  // in-flight load, so concurrent plays fetch it once
-const failedRecordings = new Set();  // URLs that wouldn't play this session
-
-function loadAudioIndex() {
-  if (audioIndex !== undefined) return Promise.resolve(audioIndex);
-  if (!audioIndexPending) {
-    audioIndexPending = fetch(AUDIO_INDEX_URL)
-      .then(r => r.ok ? r.json() : null)
-      .catch(() => null)  // not generated, or opened over file:// — no problem
-      .then(idx => (audioIndex = idx && idx.words ? idx : null));
-  }
-  return audioIndexPending;
-}
-
-function indexLookup(idx, arabic) {
-  const key = normalizeArabic(arabic);
-  const langs = Object.keys(idx.words);
-  const byPreference = langs.filter(l => LEVANTINE_ISO.includes(l))
-                            .concat(langs.filter(l => !LEVANTINE_ISO.includes(l)));
-  for (const iso of byPreference) {
-    const suffix = idx.words[iso][key];
-    if (!suffix) continue;
-    const url = idx.base + suffix;
-    if (failedRecordings.has(url)) continue;  // fall through to the live search
-    return { url, levantine: LEVANTINE_ISO.includes(iso) };
-  }
-  return null;
-}
-
-const COMMONS_API = "https://commons.wikimedia.org/w/api.php?origin=*&action=query&format=json";
-
-async function commonsSearchFile(query, signal) {
-  const res = await fetch(
-    COMMONS_API + "&list=search&srnamespace=6&srlimit=1&srsearch=" + encodeURIComponent(query),
-    { signal });
-  const hit = (await res.json())?.query?.search?.[0];
-  if (!hit) return "";
-  const info = await fetch(
-    COMMONS_API + "&prop=imageinfo&iiprop=url&titles=" + encodeURIComponent(hit.title),
-    { signal }).then(r => r.json());
-  return Object.values(info?.query?.pages || {})[0]?.imageinfo?.[0]?.url || "";
-}
-
-// Find a native-speaker recording on Wikimedia Commons. Levantine recordings
-// (Lingua Libre language codes ajp/apc) are preferred, but any Arabic Lingua
-// Libre recording beats no audio at all — especially on devices with no
-// Arabic speech voice installed, where recordings are the only sound there is.
-//
-// The bundled index answers first and for free; a miss there only rules out the
-// one speaker it covers, so the live search still runs. Search results are
-// cached as {u: url, l: isLevantine}; "" means "looked, found nothing".
-async function findCommonsAudio(arabic) {
-  const idx = await loadAudioIndex();
-  if (idx) {
-    const hit = indexLookup(idx, arabic);
-    if (hit) return hit;
-  }
-  if (arabic in audioCache) {
-    const hit = audioCache[arabic];
-    return hit ? { url: hit.u, levantine: hit.l } : null;
-  }
-  const word = normalizeArabic(arabic);
-  // Hard deadline: a slow or blocked Commons must never hold up playback.
-  const signal = AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined;
-  try {
-    let levantine = true;
-    let fileUrl = await commonsSearchFile(
-      `intitle:"${word}" (intitle:"ajp" OR intitle:"apc") filetype:audio`, signal);
-    if (!fileUrl) {
-      // "LL-Q" prefixes every Lingua Libre file, so this catches recordings in
-      // any Arabic variety without matching unrelated media.
-      levantine = false;
-      fileUrl = await commonsSearchFile(`intitle:"${word}" intitle:"LL-Q" filetype:audio`, signal);
-    }
-    audioCache[arabic] = fileUrl ? { u: fileUrl, l: levantine } : "";
-    save(AUDIO_CACHE_KEY, audioCache);
-    return fileUrl ? { url: fileUrl, levantine } : null;
-  } catch {
-    return null; // offline / API hiccup — don't cache, retry next time
-  }
+function renderCredits() {
+  const el = document.getElementById("credits");
+  if (!el || !credits.length) return;
+  el.innerHTML =
+    `<h3>Recordings</h3><p class="muted">${clips.size} words are spoken by native ` +
+    `South Levantine speakers rather than a synthetic voice: ` +
+    credits.map(c => `<b>${esc(c)}</b>`).join(", ") +
+    `, recorded for <a href="https://lingualibre.org/" target="_blank" rel="noopener">Lingua Libre</a> ` +
+    `and used under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" ` +
+    `rel="noopener">CC BY-SA 4.0</a>. Everything else is read by your device's Arabic voice.</p>`;
 }
 
 let currentAudio = null;
@@ -275,23 +208,17 @@ async function playWord(word, btn) {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   if (btn) { btn.classList.add("playing"); btn.classList.remove("native"); }
   const done = () => btn && btn.classList.remove("playing");
-  try {
-    const rec = await findCommonsAudio(word.ar);
-    if (rec) {
-      const audio = await tryPlayRecording(rec.url);
-      if (audio) {
-        audio.onended = audio.onerror = done;
-        // The gold ring means a Levantine speaker specifically.
-        if (btn && rec.levantine) btn.classList.add("native");
-        return;
-      }
-      // Bad URL/codec — forget it so the next click retries the lookup, and
-      // skip it in the index too, which would otherwise keep serving it.
-      failedRecordings.add(rec.url);
-      delete audioCache[word.ar];
-      save(AUDIO_CACHE_KEY, audioCache);
+
+  await clipsReady;
+  const clip = clipFor(word);
+  if (clip) {
+    const audio = await tryPlayRecording(clip.file);
+    if (audio) {
+      audio.onended = audio.onerror = done;
+      if (btn) btn.classList.add("native");  // gold ring: a real speaker, not a voice
+      return;
     }
-  } catch { /* fall through to speech synthesis */ }
+  }
   const u = speak(word.tts || word.ar); // per-word override beats the global fixes
   if (u) u.onend = done; else done();
 }
@@ -665,7 +592,7 @@ function populateVoicePicker() {
     ? `${ar.length} Arabic voice${ar.length === 1 ? "" : "s"} available. Hit Test — if you hear ` +
       `nothing, pick another one; “online” voices need a working connection.`
     : "No Arabic voice found on this device — hit Test to confirm. Word audio still works " +
-      "(native recordings from Wikimedia), but sentences need a voice: install an Arabic " +
+      "(recordings ship with the app), but sentences need a voice: install an Arabic " +
       "language pack in your system settings, or open this page in Microsoft Edge, which " +
       "ships Levantine voices of its own.";
   hint.classList.toggle("warn", !ar.length);
@@ -686,7 +613,7 @@ function testVoice() {
       hint.classList.remove("warn");
     } else {
       hint.textContent = "🔇 Nothing was spoken. This device has no working Arabic voice, so " +
-        "sentence audio won't play. Word audio still works via native Wikimedia recordings. " +
+        "sentence audio won't play. Word audio still works — those recordings ship with the app. " +
         "To get speech: install an Arabic language pack in your system settings, or open this " +
         "page in Microsoft Edge (it ships ar-LB/ar-SY/ar-JO voices).";
       hint.classList.add("warn");
