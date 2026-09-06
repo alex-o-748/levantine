@@ -108,7 +108,7 @@ Both a Lingua Libre dataset zip and a flat Commons download index the same way.
 Clips are 24 kHz mono MP3 rather than the source Ogg: Safari and iOS play Ogg
 unreliably, and contributors record at levels spanning several dB, which makes
 a lesson lurch in volume from card to card. `audio/` and its manifest are
-committed — about 1 MB — and the manifest carries the speaker and CC-BY-SA
+committed — 232 clips, about 1.8 MB — and the manifest carries the speaker and CC-BY-SA
 attribution for every clip, which Settings displays.
 
 Run `python3 tools/make_review.py` to build `build/review.html`: every clip
