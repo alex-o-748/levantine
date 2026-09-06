@@ -187,31 +187,34 @@ def main():
         ", ".join("%s=%d" % kv for kv in sorted(langs.items(), key=lambda kv: -kv[1])),
         ", %d unparsed names skipped" % unparsed if unparsed else ""))
 
-    # Build the index. First recording of a word wins; the rest are duplicates
-    # of the same speaker saying the same thing.
+    # Build the index, grouped by language code: a speaker records in every
+    # language they speak, and the app prefers Levantine (ajp/apc) over other
+    # Arabic varieties. Within a language the first recording of a word wins —
+    # the rest are the same speaker saying the same thing.
     words, dupes = {}, 0
     for f in files:
         key = normalize(f["word"])
-        if not key:
+        if not key or not f["url"].startswith(UPLOAD_BASE):
             continue
-        if key in words:
+        by_lang = words.setdefault(f["iso"], {})
+        if key in by_lang:
             dupes += 1
             continue
-        if not f["url"].startswith(UPLOAD_BASE):
-            continue
-        words[key] = f["url"][len(UPLOAD_BASE):]
+        by_lang[key] = f["url"][len(UPLOAD_BASE):]
 
+    distinct = len(set().union(*words.values())) if words else 0
     index = {
         "category": args.category,
         "speaker": speaker,
         "base": UPLOAD_BASE,
-        "count": len(words),
+        "count": distinct,
         "words": words,
     }
     with open(args.index, "w", encoding="utf-8") as fh:
         json.dump(index, fh, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
-    print("Wrote %s: %d words%s (%.0f KB)" % (
-        args.index, len(words), ", %d duplicate recordings dropped" % dupes if dupes else "",
+    print("Wrote %s: %d distinct words across %d language(s)%s (%.0f KB)" % (
+        args.index, distinct, len(words),
+        ", %d duplicate recordings dropped" % dupes if dupes else "",
         os.path.getsize(args.index) / 1e3))
 
     if not args.download:

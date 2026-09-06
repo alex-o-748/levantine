@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+
+# Downloaded Commons media (fetch-commons-audio.py --download). The generated
+# audio-index.json is small and *is* meant to be committed; the wav files are not.
+audio/

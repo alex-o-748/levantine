@@ -5,7 +5,9 @@
 
 const STORE_KEY = "yalla.progress.v1";
 const SETTINGS_KEY = "yalla.settings.v1";
-const AUDIO_CACHE_KEY = "yalla.audiocache.v1";
+// v2: v1 also cached "looked, found nothing" results, which would otherwise
+// hide words the bundled audio index can now answer instantly.
+const AUDIO_CACHE_KEY = "yalla.audiocache.v2";
 
 // Leitner boxes → review interval in days. Box 0 = new/again.
 const INTERVALS = [0, 1, 3, 7, 14, 30, 60];
@@ -143,6 +145,56 @@ function speak(text, rate = settings.rate) {
   return handle;
 }
 
+// Lingua Libre language codes for the dialect this app teaches. Recordings in
+// other Arabic varieties still play, just without the "native Levantine" ring.
+const LEVANTINE_ISO = ["ajp", "apc"];
+
+// Diacritics, tatweel and punctuation appear in recording filenames but not in
+// VOCAB, so both sides are folded before matching. Mirrors normalize() in
+// tools/fetch-commons-audio.py — keep the two in step.
+function normalizeArabic(word) {
+  return word.replace(/[ً-ْٰـ]/g, "")
+             .replace(/[،؛؟!?.,'"()[\]]/g, "")
+             .trim();
+}
+
+// ————— Bundled audio index —————
+// tools/fetch-commons-audio.py maps a whole Lingua Libre speaker's category to
+// { words: { iso: { word: urlSuffix } } }. It's optional: without it the app
+// falls back to searching Commons a word at a time, exactly as before.
+
+const AUDIO_INDEX_URL = "audio-index.json";
+
+let audioIndex;         // undefined = not tried yet, null = unavailable
+let audioIndexPending;  // in-flight load, so concurrent plays fetch it once
+const failedRecordings = new Set();  // URLs that wouldn't play this session
+
+function loadAudioIndex() {
+  if (audioIndex !== undefined) return Promise.resolve(audioIndex);
+  if (!audioIndexPending) {
+    audioIndexPending = fetch(AUDIO_INDEX_URL)
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)  // not generated, or opened over file:// — no problem
+      .then(idx => (audioIndex = idx && idx.words ? idx : null));
+  }
+  return audioIndexPending;
+}
+
+function indexLookup(idx, arabic) {
+  const key = normalizeArabic(arabic);
+  const langs = Object.keys(idx.words);
+  const byPreference = langs.filter(l => LEVANTINE_ISO.includes(l))
+                            .concat(langs.filter(l => !LEVANTINE_ISO.includes(l)));
+  for (const iso of byPreference) {
+    const suffix = idx.words[iso][key];
+    if (!suffix) continue;
+    const url = idx.base + suffix;
+    if (failedRecordings.has(url)) continue;  // fall through to the live search
+    return { url, levantine: LEVANTINE_ISO.includes(iso) };
+  }
+  return null;
+}
+
 const COMMONS_API = "https://commons.wikimedia.org/w/api.php?origin=*&action=query&format=json";
 
 async function commonsSearchFile(query, signal) {
@@ -161,15 +213,21 @@ async function commonsSearchFile(query, signal) {
 // (Lingua Libre language codes ajp/apc) are preferred, but any Arabic Lingua
 // Libre recording beats no audio at all — especially on devices with no
 // Arabic speech voice installed, where recordings are the only sound there is.
-// Cached as {u: url, l: isLevantine}; "" means "looked, found nothing".
+//
+// The bundled index answers first and for free; a miss there only rules out the
+// one speaker it covers, so the live search still runs. Search results are
+// cached as {u: url, l: isLevantine}; "" means "looked, found nothing".
 async function findCommonsAudio(arabic) {
+  const idx = await loadAudioIndex();
+  if (idx) {
+    const hit = indexLookup(idx, arabic);
+    if (hit) return hit;
+  }
   if (arabic in audioCache) {
     const hit = audioCache[arabic];
-    if (!hit) return null;
-    return typeof hit === "string" ? { url: hit, levantine: true } // legacy cache
-                                   : { url: hit.u, levantine: hit.l };
+    return hit ? { url: hit.u, levantine: hit.l } : null;
   }
-  const word = arabic.replace(/[؟!،.]/g, "").trim();
+  const word = normalizeArabic(arabic);
   // Hard deadline: a slow or blocked Commons must never hold up playback.
   const signal = AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined;
   try {
@@ -227,7 +285,9 @@ async function playWord(word, btn) {
         if (btn && rec.levantine) btn.classList.add("native");
         return;
       }
-      // Bad URL/codec — forget it so the next click retries the lookup.
+      // Bad URL/codec — forget it so the next click retries the lookup, and
+      // skip it in the index too, which would otherwise keep serving it.
+      failedRecordings.add(rec.url);
       delete audioCache[word.ar];
       save(AUDIO_CACHE_KEY, audioCache);
     }
