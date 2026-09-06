@@ -45,5 +45,12 @@ python3 -m http.server 8090 &   # from the repo root
   then rejects the fake utterance class.
 - Headless has no speech-synthesis voices; `speak()` is a silent no-op.
   Audio assertions should target the Commons path: after clicking a speaker
-  button, check `localStorage['yalla.audiocache.v1']` and the `.native`
+  button, check `localStorage['yalla.audiocache.v2']` and the `.native`
   class on the button.
+- Word audio consults `audio-index.json` (see the README) before searching
+  Commons, so a word that's in the index makes **no** API call at all. To
+  exercise the search path, drop a word the index doesn't cover — or delete
+  the file, which the app treats as "no index" and falls back. Serve the
+  index's media by routing `upload.wikimedia.org` and fulfilling with a real
+  wav; `.native` only appears once the element actually fires `playing`, so
+  launch Chromium with `--autoplay-policy=no-user-gesture-required`.

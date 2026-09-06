@@ -71,6 +71,58 @@ Deploy from a branch*, pick the branch and `/ (root)`.
 | `data.js` | The vocabulary (`VOCAB`) and listening texts (`TEXTS`) |
 | `app.js` | Flashcards, spaced repetition, audio, Wiktionary API client |
 | `style.css` | Styling (light/dark, RTL-aware) |
+| `tools/fetch-commons-audio.py` | Bulk-index (and optionally download) a Lingua Libre speaker's recordings |
+
+### Bulk audio from Commons
+
+Searching Commons one word at a time costs two API calls per word — fine for
+a handful of cards, slow and online-only at scale. A single Lingua Libre
+speaker's category holds thousands of recordings whose *filenames already name
+the word*, so one pass over the category gives a complete word → file map:
+
+```sh
+# ~10 API calls, no media downloaded: writes audio-index.json
+python3 tools/fetch-commons-audio.py
+
+# same, plus the wav files themselves into audio/
+python3 tools/fetch-commons-audio.py --download
+```
+
+Drop `audio-index.json` in the repo root and the app uses it automatically:
+an indexed word plays instantly with no network round-trip, and only a miss
+falls back to the live search. The file is optional — without it (or when
+`index.html` is opened over `file://`, where `fetch` can't read it) nothing
+breaks, the app just searches as it always did. `audio/` is gitignored;
+`audio-index.json` is small and meant to be committed.
+
+The index is grouped by Lingua Libre language code, so the app can keep
+preferring Levantine (`ajp`/`apc`) over other Arabic varieties — the gold ring
+on the speaker button still means a Levantine speaker specifically:
+
+```json
+{"base": "https://upload.wikimedia.org/wikipedia/commons/",
+ "words": {"ajp": {"مرحبا": "c/cc/LL-Q1137779 (ajp)-…-مرحبا.wav"},
+           "arb": {"كتاب":  "b/bb/…"}}}
+```
+
+Keys are normalised — diacritics, tatweel and punctuation stripped — so they
+match `VOCAB` spellings (`كيفك؟` finds `كيفك`). `normalizeArabic()` in `app.js`
+and `normalize()` in the script must stay in step. `--category` picks a
+different speaker; the default is *Lingua Libre pronunciation by
+AdrianAbdulBaha*. Downloads are resumable: re-run to retry failures.
+
+Commons does **not** transcode WAV, so `--download` gets uncompressed PCM
+(the script prints the total before starting). To ship the audio with the
+site, convert it first:
+
+```sh
+mkdir -p audio-opus
+for f in audio/*.wav; do
+  ffmpeg -nostdin -i "$f" -c:a libopus -b:a 24k -ac 1 \
+    "audio-opus/$(basename "${f%.wav}").opus"
+done
+```
+
 
 ### Adding content
 
