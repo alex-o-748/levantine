@@ -192,7 +192,7 @@ def index_corpus(corpus=CORPUS):
 # so a corpus assembled either way indexes the same.
 # The word is what follows the LAST hyphen, not the first: contributor names
 # carry hyphens ("Jean-Pierre") far more often than recorded Arabic words do.
-LL_NAME = re.compile(r"^LL-Q\d+\s*\([^)]*\)-(?P<speaker>.+)-(?P<word>[^-]+)$")
+LL_NAME = re.compile(r"^LL-Q\d+[\s_]*\([^)]*\)[-_](?P<speaker>.+)-(?P<word>[^-]+)$")
 
 def read_name(stem, parent):
     m = LL_NAME.match(stem)

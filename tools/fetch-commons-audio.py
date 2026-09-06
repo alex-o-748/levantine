@@ -130,7 +130,12 @@ def download(entry, out_dir, ua, delay=0.0, retries=5):
     "come back later", not a failure, so it is retried with a widening wait
     rather than counted as a lost file.
     """
-    name = urllib.parse.unquote(entry["url"].rsplit("/", 1)[-1])
+    # Name the file from the Commons title, not the URL. The imageinfo URL now
+    # carries UTM query parameters and spells spaces as underscores, so slicing
+    # it gave files called "....wav?utm_source=..." — no audio suffix, silently
+    # skipped by build_audio.py even though the bytes were on disk. The title is
+    # the canonical name, matching the dataset zips' spelling.
+    name = entry["title"].split(":", 1)[-1].replace("/", "_")
     path = os.path.join(out_dir, name)
     if os.path.exists(path) and (not entry["size"] or os.path.getsize(path) == entry["size"]):
         return "skip"
