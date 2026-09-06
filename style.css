@@ -286,3 +286,13 @@ main { max-width: 680px; margin: 0 auto; padding: 1.2rem 1rem 4rem; }
   .stats { gap: 1.2rem; }
   .text-title-en { display: none; }
 }
+
+/* Speaker credits in Settings — CC BY-SA requires naming them. */
+.credits {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+.credits h3 { font-size: .95rem; margin: 0 0 .4rem; }
+.credits p { margin: 0; font-size: .85rem; line-height: 1.6; }
+.credits b { font-weight: 600; }

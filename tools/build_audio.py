@@ -211,14 +211,31 @@ def build(recs, spec, out=OUT, force=False):
 
     for lesson in spec["lessons"]:
         speaker = lesson["speaker"]
-        if speaker not in spk:
+        # A lesson normally names one speaker so its voice stays consistent.
+        # "*" pools every speaker instead — for supplementary coverage of words
+        # that already exist in the app, where having a recording at all beats
+        # having the same voice throughout.
+        if speaker == "*":
+            available = {}
+            for words in spk.values():
+                for key, takes in words.items():
+                    available.setdefault(key, []).extend(takes)
+        elif speaker not in spk:
             sys.exit(f"unknown speaker {speaker!r} — run --report to list them")
-        available = spk[speaker]
+        else:
+            available = spk[speaker]
         wanted = lesson.get("words", "*")
         keys = sorted(available) if wanted == "*" else [normalise(w) for w in wanted]
+        # Where a listening pass rejects a recording — misread word, botched
+        # take, a filename the audio doesn't match — name it here rather than
+        # narrowing `words`, so the reason stays attached to the decision.
+        dropped = {normalise(w) for w in lesson.get("exclude", [])}
 
         clips = []
         for key in keys:
+            if key in dropped:
+                skipped.append((lesson["id"], key, "excluded by review"))
+                continue
             takes = available.get(key)
             if not takes:
                 skipped.append((lesson["id"], key, "no recording"))
@@ -230,7 +247,7 @@ def build(recs, spec, out=OUT, force=False):
                 skipped.append((lesson["id"], key, "non-Arabic filename"))
                 continue
             take = max(takes, key=lambda r: r.size)  # longest take: least clipped
-            name = slug(take.word, speaker)
+            name = slug(take.word, take.speaker)
             dst = out / f"{name}.mp3"
             if force or not dst.exists():
                 with tempfile.NamedTemporaryFile(suffix=Path(take.entry).suffix) as tmp:
@@ -238,12 +255,17 @@ def build(recs, spec, out=OUT, force=False):
                     dur = transcode(ffmpeg, tmp.name, dst)
             else:
                 dur = duration(ffmpeg, dst)
-            clips.append({"ar": take.word, "file": f"audio/{name}.mp3", "dur": dur})
+            # Speaker rides on every clip, not just the lesson: a pooled lesson
+            # has several, and CC-BY-SA credit is owed per recording.
+            clips.append({"ar": take.word, "file": f"audio/{name}.mp3", "dur": dur,
+                          "speaker": take.speaker})
             seen.add(f"{name}.mp3")
             print(f"  {lesson['id']:>10}  {take.word:<20} {dst.name}")
 
+        voices = sorted({c["speaker"] for c in clips})
         lessons.append({"id": lesson["id"], "title": lesson.get("title", lesson["id"]),
-                        "speaker": speaker, "clips": clips})
+                        "speaker": " · ".join(voices) if speaker == "*" else speaker,
+                        "clips": clips})
 
     manifest = {
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),

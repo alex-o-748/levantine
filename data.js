@@ -18,7 +18,224 @@ const TTS_FIXES = {
   "دقيقة": "دَئِيئَة",
 };
 
-const VOCAB = [
+// Fold the spelling variants that stop a word matching itself — the same rules
+// tools/build_audio.py applies when it names a clip, so a word here and its
+// recording in audio/manifest.json always meet.
+function normAr(s) {
+  return s.normalize("NFC")
+    .replace(/[\u064B-\u0652\u0670\u0640]/g, "")
+    .replace(/[\u0623\u0625\u0622\u0671]/g, "\u0627")
+    .replace(/\u0649/g, "\u064A").replace(/\u0624/g, "\u0648").replace(/\u0626/g, "\u064A")
+    .replace(/[\u061F!\u060C.,?]/g, "")
+    .replace(/\s+/g, " ").trim();
+}
+
+// Lessons drawn from the Lingua Libre corpus: every word here has a recording
+// by a native South Levantine speaker. Built by tools/build_audio.py — the
+// Arabic must match audio/manifest.json exactly, so regenerate rather than
+// hand-editing when the selection changes.
+const LESSONS = [
+  {
+    id: "people",
+    title: "People & politeness",
+    words: [
+    { ar: "اجنبي", tr: "ajnabi", en: "foreign; a foreigner" },
+    { ar: "احنا", tr: "iḥna", en: "we" },
+    { ar: "آسف", tr: "āsif", en: "sorry (m)" },
+    { ar: "اسم", tr: "ism", en: "name" },
+    { ar: "اشخاص", tr: "ashkhāṣ", en: "people, persons" },
+    { ar: "اصحاب", tr: "aṣḥāb", en: "friends; owners" },
+    { ar: "اصدقاء", tr: "aṣdiqāʾ", en: "friends" },
+    { ar: "انا", tr: "ana", en: "I" },
+    { ar: "انتا", tr: "inta", en: "you (m)" },
+    { ar: "انتو", tr: "into", en: "you (pl)" },
+    { ar: "انتي", tr: "inti", en: "you (f)" },
+    { ar: "اهل", tr: "ahl", en: "family, parents; folks" },
+    { ar: "بدون", tr: "bidūn", en: "without" },
+    { ar: "برضه", tr: "barḍo", en: "also, too; anyway" },
+    { ar: "بِسّ", tr: "bass", en: "but; only; enough" },
+    { ar: "بعض", tr: "baʿḍ", en: "some; each other" },
+    { ar: "بعيد", tr: "baʿīd", en: "far" },
+    { ar: "بلا", tr: "bala", en: "without; forget it" },
+    { ar: "بلاش", tr: "balāsh", en: "don't; for free; never mind" },
+    { ar: "بما انّه", tr: "bimā innu", en: "since, given that" },
+    { ar: "بنات", tr: "banāt", en: "girls" },
+    { ar: "بنت", tr: "bint", en: "girl; daughter" },
+    { ar: "بني ادم", tr: "bani ādam", en: "human being, person" },
+    { ar: "بين", tr: "bēn", en: "between" },
+    { ar: "بينما", tr: "baynamā", en: "while, whereas" },
+    { ar: "تحت", tr: "taḥt", en: "under, below" },
+    { ar: "تمام", tr: "tamām", en: "fine, perfect, OK" },
+    { ar: "حبيب", tr: "ḥabīb", en: "dear, beloved" },
+    { ar: "حتّى", tr: "ḥatta", en: "until; even" },
+    { ar: "حلو", tr: "ḥilu", en: "nice, pretty, sweet" },
+    { ar: "حياة", tr: "ḥayāh", en: "life" },
+    { ar: "دغري", tr: "dughri", en: "straight ahead; straightforward" },
+    { ar: "زلمة", tr: "zalame", en: "man, guy" },
+    { ar: "شاطر", tr: "shāṭir", en: "clever, good at something" },
+    { ar: "شبّ", tr: "shabb", en: "young man" },
+    { ar: "شباب", tr: "shabāb", en: "young people, guys" },
+    { ar: "شخص", tr: "shakhṣ", en: "person" },
+    { ar: "شكرًا", tr: "shukran", en: "thank you" },
+    { ar: "شمال", tr: "shmāl", en: "left; north" },
+    { ar: "صاحب", tr: "ṣāḥib", en: "friend; owner" },
+    { ar: "صبية", tr: "ṣabiyye", en: "young woman" },
+    { ar: "صديق", tr: "ṣadīq", en: "friend" },
+    { ar: "طالما", tr: "ṭālama", en: "as long as" },
+    { ar: "طيّب", tr: "ṭayyib", en: "good, kind; OK then" },
+    { ar: "عادي", tr: "ʿādi", en: "normal; no big deal" },
+    { ar: "عُرس", tr: "ʿurs", en: "wedding" },
+    { ar: "عَروس", tr: "ʿarūs", en: "bride" },
+    { ar: "عَريس", tr: "ʿarīs", en: "groom" },
+    { ar: "عزيز", tr: "ʿazīz", en: "dear, precious" },
+    { ar: "عشان", tr: "ʿashān", en: "because; in order to" },
+    { ar: "عفوًا", tr: "ʿafwan", en: "you're welcome; excuse me" },
+    { ar: "علاقة", tr: "ʿalāqa", en: "relationship" },
+    { ar: "عمر", tr: "ʿumr", en: "age; lifetime" },
+    { ar: "عيلة", tr: "ʿēle", en: "family" },
+    { ar: "غريب", tr: "gharīb", en: "strange; a stranger" },
+    { ar: "غير", tr: "ghēr", en: "other than; different" },
+    { ar: "فوق", tr: "fōʾ", en: "above, up" },
+    { ar: "في", tr: "fī", en: "in; there is" },
+    { ar: "فيه", tr: "fīh", en: "there is; in it" },
+    { ar: "قدّام", tr: "ʾuddām", en: "in front of" },
+    { ar: "قريب", tr: "ʾarīb", en: "near; soon; a relative" },
+    { ar: "كمان", tr: "kamān", en: "also, too; again" },
+    { ar: "كويّس", tr: "kwayyis", en: "good, nice" },
+    { ar: "لحدّ", tr: "la-ḥadd", en: "until, up to" },
+    { ar: "لطيف", tr: "laṭīf", en: "kind, pleasant" },
+    { ar: "للأسف", tr: "lil-ʾasaf", en: "unfortunately" },
+    { ar: "لو سمحت", tr: "law samaḥt", en: "please; excuse me" },
+    { ar: "ما دام", tr: "mā dām", en: "as long as" },
+    { ar: "متأسّف", tr: "mitʾassif", en: "sorry (m)" },
+    { ar: "مرّة", tr: "marra", en: "a time, once" },
+    { ar: "مع", tr: "maʿ", en: "with" },
+    { ar: "معليش", tr: "maʿlēsh", en: "never mind, it's OK" },
+    { ar: "منشان", tr: "minshān", en: "for; in order to" },
+    { ar: "منيح", tr: "mnīḥ", en: "good, fine, well" },
+    { ar: "همه", tr: "humme", en: "they" },
+    { ar: "هناك", tr: "hunāk", en: "there" },
+    { ar: "هو", tr: "huwwe", en: "he" },
+    { ar: "هون", tr: "hōn", en: "here" },
+    { ar: "هوية", tr: "hawiyye", en: "identity; ID card" },
+    { ar: "هي", tr: "hiyye", en: "she" },
+    { ar: "ورا", tr: "wara", en: "behind" },
+    { ar: "ولاد", tr: "wlād", en: "children, boys" },
+    { ar: "ولد", tr: "walad", en: "boy, child" },
+    { ar: "يمين", tr: "yamīn", en: "right (direction)" },
+    ],
+  },
+  {
+    id: "food",
+    title: "Food & drink",
+    words: [
+    { ar: "اكل", tr: "akl", en: "food; eating" },
+    { ar: "باتنجان", tr: "bātinjān", en: "aubergine, eggplant" },
+    { ar: "برقوق", tr: "barʾūʾ", en: "plums" },
+    { ar: "بصل", tr: "baṣal", en: "onions" },
+    { ar: "بطّيخ", tr: "baṭṭīkh", en: "watermelon" },
+    { ar: "بندورة", tr: "banadōra", en: "tomatoes" },
+    { ar: "بهار", tr: "bhār", en: "spice, seasoning" },
+    { ar: "تفّاح", tr: "tuffāḥ", en: "apples" },
+    { ar: "تمر", tr: "tamr", en: "dates" },
+    { ar: "جبنة", tr: "jibne", en: "cheese" },
+    { ar: "جزر", tr: "jazar", en: "carrots" },
+    { ar: "حليب", tr: "ḥalīb", en: "milk" },
+    { ar: "خُبز", tr: "khubz", en: "bread" },
+    { ar: "خسّ", tr: "khass", en: "lettuce" },
+    { ar: "خضار", tr: "khuḍār", en: "vegetables" },
+    { ar: "خوخ", tr: "khōkh", en: "peaches" },
+    { ar: "خيار", tr: "khiyār", en: "cucumbers" },
+    { ar: "زبدة", tr: "zibde", en: "butter" },
+    { ar: "زنجبيل", tr: "zanjabīl", en: "ginger" },
+    { ar: "زيت", tr: "zēt", en: "oil" },
+    { ar: "زيتون", tr: "zaytūn", en: "olives" },
+    { ar: "سكّينة", tr: "sikkīne", en: "knife" },
+    { ar: "شاي", tr: "shāy", en: "tea" },
+    { ar: "شوربة", tr: "shōrba", en: "soup" },
+    { ar: "شوكة", tr: "shōke", en: "fork" },
+    { ar: "صحن", tr: "ṣaḥn", en: "plate" },
+    { ar: "طعم", tr: "ṭaʿm", en: "taste, flavour" },
+    { ar: "عسل", tr: "ʿasal", en: "honey" },
+    { ar: "عشا", tr: "ʿasha", en: "dinner" },
+    { ar: "عصير", tr: "ʿaṣīr", en: "juice" },
+    { ar: "عنب", tr: "ʿinab", en: "grapes" },
+    { ar: "غدا", tr: "ghada", en: "lunch" },
+    { ar: "فاسد", tr: "fāsid", en: "spoiled, off" },
+    { ar: "فاصوليا", tr: "fāṣūlya", en: "beans" },
+    { ar: "فطور", tr: "fṭūr", en: "breakfast" },
+    { ar: "فلفل", tr: "filfil", en: "pepper" },
+    { ar: "فنجان", tr: "finjān", en: "small coffee cup" },
+    { ar: "فواكه", tr: "fawākih", en: "fruit" },
+    { ar: "قشطة", tr: "ʾishṭa", en: "cream" },
+    { ar: "قنّينة", tr: "ʾannīne", en: "bottle" },
+    { ar: "قهوة", tr: "ʾahwe", en: "coffee" },
+    { ar: "كاسة", tr: "kāse", en: "glass, cup" },
+    { ar: "كبّاية", tr: "kubbāye", en: "drinking glass" },
+    { ar: "ليمون", tr: "laymūn", en: "lemon; citrus" },
+    { ar: "مرميّة", tr: "maryamiyye", en: "sage (herbal tea)" },
+    { ar: "مشروب", tr: "mashrūb", en: "a drink" },
+    { ar: "مشمش", tr: "mishmish", en: "apricots" },
+    { ar: "مَطبَخ", tr: "maṭbakh", en: "kitchen" },
+    { ar: "مطعم", tr: "maṭʿam", en: "restaurant" },
+    { ar: "معلقة", tr: "malʿaʾa", en: "spoon" },
+    { ar: "مقهى", tr: "maʾha", en: "café" },
+    { ar: "ملفوف", tr: "malfūf", en: "cabbage" },
+    { ar: "مي", tr: "mayy", en: "water" },
+    { ar: "نبيد", tr: "nbīd", en: "wine" },
+    { ar: "نعنع", tr: "naʿnaʿ", en: "mint" },
+    ],
+  },
+  {
+    id: "time",
+    title: "Time",
+    words: [
+    { ar: "ابَدًا", tr: "abadan", en: "never; not at all" },
+    { ar: "آخِر", tr: "ākhir", en: "last, final; the end of" },
+    { ar: "اخيرًا", tr: "akhīran", en: "finally, at last" },
+    { ar: "اُسبوع", tr: "usbūʿ", en: "week" },
+    { ar: "الليلة", tr: "il-lēle", en: "tonight" },
+    { ar: "اليوم", tr: "il-yōm", en: "today" },
+    { ar: "بدري", tr: "badri", en: "early" },
+    { ar: "بَعد", tr: "baʿd", en: "after; still, yet" },
+    { ar: "بعدين", tr: "baʿdēn", en: "later, afterwards" },
+    { ar: "بُكرا", tr: "bukra", en: "tomorrow" },
+    { ar: "بَكّير", tr: "bakkīr", en: "early" },
+    { ar: "تلاتة", tr: "talāte", en: "three" },
+    { ar: "تنتين", tr: "tintēn", en: "two (f)" },
+    { ar: "ثانية", tr: "thānye", en: "a second" },
+    { ar: "حاليًا", tr: "ḥāliyyan", en: "currently, at present" },
+    { ar: "دايمًا", tr: "dāyman", en: "always" },
+    { ar: "دَقيقة", tr: "daʾīʾa", en: "a minute" },
+    { ar: "زَمان", tr: "zamān", en: "long ago; time" },
+    { ar: "ساعة", tr: "sāʿa", en: "hour; watch, clock" },
+    { ar: "سَنة", tr: "sane", en: "year" },
+    { ar: "شَهر", tr: "shahr", en: "month" },
+    { ar: "صَباحيّة", tr: "ṣabāḥiyye", en: "the morning" },
+    { ar: "صُبُح", tr: "ṣubuḥ", en: "morning" },
+    { ar: "فَترة", tr: "fatra", en: "a period, a while" },
+    { ar: "قَبل", tr: "ʾabl", en: "before" },
+    { ar: "لَحظة", tr: "laḥẓa", en: "a moment" },
+    { ar: "لِسّا", tr: "lissa", en: "still; not yet" },
+    { ar: "ليل", tr: "lēl", en: "night-time" },
+    { ar: "ليلة", tr: "lēle", en: "a night" },
+    { ar: "ماضي", tr: "māḍi", en: "past" },
+    { ar: "مبارِح", tr: "mbāriḥ", en: "yesterday" },
+    { ar: "متأخِّر", tr: "mitʾakhkhir", en: "late" },
+    { ar: "مُدّة", tr: "mudde", en: "a period, duration" },
+    { ar: "مَسا", tr: "masa", en: "evening" },
+    { ar: "مستقبل", tr: "mustaʾbal", en: "future" },
+    { ar: "نادِرًا", tr: "nādiran", en: "rarely" },
+    { ar: "نهار", tr: "nhār", en: "daytime" },
+    { ar: "وَقت", tr: "waʾt", en: "time" },
+    { ar: "يوم", tr: "yōm", en: "day" },
+    ],
+  },
+];
+
+
+const VOCAB = (() => {
+  const base = [
   // ——— Greetings & politeness ———
   { ar: "مرحبا", tr: "marḥaba", en: "hi, hello", cat: "Greetings" },
   { ar: "أهلين", tr: "ahlēn", en: "hi! (warm reply to marḥaba)", cat: "Greetings", wik: "اهلين" },
@@ -214,7 +431,21 @@ const VOCAB = [
   { ar: "تمانة", tr: "tamāne", en: "eight", cat: "Numbers" },
   { ar: "تسعة", tr: "tisʿa", en: "nine", cat: "Numbers" },
   { ar: "عشرة", tr: "ʿashara", en: "ten", cat: "Numbers" },
-].map((w, i) => ({ id: i, ...w }));
+  ];
+  // Lesson words the older list already covers keep their original entry — it
+  // carries a Wiktionary override and the learner's progress, and it picks up
+  // the native recording anyway through the same clip index.
+  const seen = new Set(base.map(w => normAr(w.ar)));
+  for (const lesson of LESSONS) {
+    for (const w of lesson.words) {
+      const key = normAr(w.ar);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      base.push({ ...w, cat: lesson.title, lesson: lesson.id });
+    }
+  }
+  return base.map((w, i) => ({ id: i, ...w }));
+})();
 
 const TEXTS = [
   {
