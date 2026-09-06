@@ -175,14 +175,28 @@ def index_corpus(corpus=CORPUS):
                 parts = p.split("/")
                 if len(parts) < 2:
                     continue
-                recs.append(Recording(Path(parts[-1]).stem, parts[-2], zp, info.filename,
-                                      info.file_size))
+                word, speaker = read_name(Path(parts[-1]).stem, parts[-2])
+                recs.append(Recording(word, speaker, zp, info.filename, info.file_size))
     for d in sorted(x for x in corpus.iterdir() if x.is_dir()):
         for f in sorted(d.rglob("*")):
             if f.is_file() and f.suffix.lower() in AUDIO_EXT:
-                recs.append(Recording(f.stem, f.parent.name, None, str(f), f.stat().st_size))
+                word, speaker = read_name(f.stem, f.parent.name)
+                recs.append(Recording(word, speaker, None, str(f), f.stat().st_size))
         sources.append({"directory": d.name})
     return recs, sources
+
+
+# Commons names every Lingua Libre file "LL-Q<qid> (<iso>)-<speaker>-<word>",
+# which is what tools/fetch-commons-audio.py downloads — flat, no directory per
+# speaker. The dataset zips instead use <language>/<speaker>/<word>. Read both,
+# so a corpus assembled either way indexes the same.
+# The word is what follows the LAST hyphen, not the first: contributor names
+# carry hyphens ("Jean-Pierre") far more often than recorded Arabic words do.
+LL_NAME = re.compile(r"^LL-Q\d+\s*\([^)]*\)-(?P<speaker>.+)-(?P<word>[^-]+)$")
+
+def read_name(stem, parent):
+    m = LL_NAME.match(stem)
+    return (m.group("word"), m.group("speaker")) if m else (stem, parent)
 
 
 def by_speaker(recs):

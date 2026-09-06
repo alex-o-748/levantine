@@ -1,8 +1,11 @@
-# The raw Lingua Libre dump: large, redistributable from upstream, and only
-# ever an input to tools/. Never committed — see corpus/README.md.
+# The raw Lingua Libre recordings: large, redistributable from upstream, and
+# only ever an input to tools/. Never committed — see corpus/README.md.
+# fetch-commons-audio.py downloads into corpus/commons/.
 corpus/*
 !corpus/README.md
 
 # Generated review pages — rebuild with tools/make_review.py
 build/
+
 __pycache__/
+*.pyc

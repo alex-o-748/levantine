@@ -71,6 +71,74 @@ Deploy from a branch*, pick the branch and `/ (root)`.
 | `data.js` | The vocabulary (`VOCAB`) and listening texts (`TEXTS`) |
 | `app.js` | Flashcards, spaced repetition, audio, Wiktionary API client |
 | `style.css` | Styling (light/dark, RTL-aware) |
+| `tools/fetch-commons-audio.py` | Fetch a Lingua Libre speaker's recordings from Commons into `corpus/` |
+| `tools/build_audio.py` | Turn `corpus/` into the clips the app ships (`audio/` + manifest) |
+| `tools/make_review.py` | Build a listening-review page for every clip |
+
+### Where word audio comes from
+
+Words with a recording play a real South Levantine speaker; everything else,
+and every sentence, falls back to the browser's Arabic voice. Recordings are
+chosen at **build time** and ship with the app, so every learner hears the same
+clip and hears it immediately — no lookup, no network, and it works offline.
+
+The pipeline has two halves. Acquisition pulls recordings into `corpus/`, which
+is gitignored:
+
+```sh
+# see what a speaker's category holds (~10 API calls, nothing downloaded)
+python3 tools/fetch-commons-audio.py
+
+# fetch it into corpus/commons/
+python3 tools/fetch-commons-audio.py --download
+```
+
+Production selects, trims, level-matches and transcodes what the app ships:
+
+```sh
+python3 tools/build_audio.py --report   # who recorded what
+python3 tools/build_audio.py            # write audio/ + audio/manifest.json
+```
+
+`tools/selection.json` decides which recordings make it: one speaker per lesson
+so a lesson keeps a consistent voice, `"speaker": "*"` to pool everyone for
+supplementary words, and `exclude` to reject a clip a listening pass rejected.
+Both a Lingua Libre dataset zip and a flat Commons download index the same way.
+
+Clips are 24 kHz mono MP3 rather than the source Ogg: Safari and iOS play Ogg
+unreliably, and contributors record at levels spanning several dB, which makes
+a lesson lurch in volume from card to card. `audio/` and its manifest are
+committed — about 1 MB — and the manifest carries the speaker and CC-BY-SA
+attribution for every clip, which Settings displays.
+
+Run `python3 tools/make_review.py` to build `build/review.html`: every clip
+embedded as a data URI, playable with no server, for marking clips keep, unsure
+or drop before they ship.
+
+```json
+{"base": "https://upload.wikimedia.org/wikipedia/commons/",
+ "words": {"ajp": {"مرحبا": "c/cc/LL-Q1137779 (ajp)-…-مرحبا.wav"},
+           "arb": {"كتاب":  "b/bb/…"}}}
+```
+
+Keys are normalised — diacritics, tatweel and punctuation stripped — so they
+match `VOCAB` spellings (`كيفك؟` finds `كيفك`). `normalizeArabic()` in `app.js`
+and `normalize()` in the script must stay in step. `--category` picks a
+different speaker; the default is *Lingua Libre pronunciation by
+AdrianAbdulBaha*. Downloads are resumable: re-run to retry failures.
+
+Commons does **not** transcode WAV, so `--download` gets uncompressed PCM
+(the script prints the total before starting). To ship the audio with the
+site, convert it first:
+
+```sh
+mkdir -p audio-opus
+for f in audio/*.wav; do
+  ffmpeg -nostdin -i "$f" -c:a libopus -b:a 24k -ac 1 \
+    "audio-opus/$(basename "${f%.wav}").opus"
+done
+```
+
 
 ### Adding content
 

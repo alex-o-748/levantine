@@ -44,6 +44,11 @@ python3 -m http.server 8090 &   # from the repo root
   plain assignment silently fails (readonly accessor) and the native engine
   then rejects the fake utterance class.
 - Headless has no speech-synthesis voices; `speak()` is a silent no-op.
-  Audio assertions should target the Commons path: after clicking a speaker
-  button, check `localStorage['yalla.audiocache.v1']` and the `.native`
-  class on the button.
+  Audio assertions should target the recordings that ship in `audio/`: after
+  clicking a speaker button, assert the request for the word's `.mp3` and the
+  `.native` class on the button.
+- Word audio is local — `audio/manifest.json` maps a word to its clip, and
+  nothing is fetched from Commons at play time. A word with no clip falls back
+  to speech synthesis, which is silent in headless, so pick a word the manifest
+  covers (منيح does). `.native` only appears once the element actually fires
+  `playing`, so launch Chromium with `--autoplay-policy=no-user-gesture-required`.
