@@ -152,6 +152,10 @@ def main():
     ap.add_argument("--speaker", default=None,
                     help="speaker name as it appears in filenames "
                          "(default: taken from the category name)")
+    ap.add_argument("--inventory", default="", metavar="PATH",
+                    help="write what the category holds (title, language, size) here — "
+                         "small enough to commit, so selections can be planned without "
+                         "re-downloading the media")
     ap.add_argument("--index", default="", metavar="PATH",
                     help="also write a word -> URL map here (the app does not read one)")
     ap.add_argument("--download", action="store_true", help="also fetch the media files")
@@ -194,6 +198,23 @@ def main():
         len(files), total / 1e6,
         ", ".join("%s=%d" % kv for kv in sorted(langs.items(), key=lambda kv: -kv[1])),
         ", %d unparsed names skipped" % unparsed if unparsed else ""))
+
+    if args.inventory:
+        # Titles rather than parsed words: build_audio.py reads the Lingua Libre
+        # naming itself and recovers the individual speaker, which the index's
+        # per-category speaker guess drops.
+        payload = {
+            "category": args.category,
+            "fetched": __import__("datetime").datetime.now(
+                __import__("datetime").timezone.utc).isoformat(timespec="seconds"),
+            "files": sorted(
+                ({"title": f["title"], "iso": f["iso"], "size": f["size"]} for f in files),
+                key=lambda f: f["title"]),
+        }
+        with open(args.inventory, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, ensure_ascii=False, indent=1, sort_keys=True)
+        print("Wrote %s (%d files, %.0f kB)" % (
+            args.inventory, len(files), os.path.getsize(args.inventory) / 1e3))
 
     # Build the index, grouped by language code: a speaker records in every
     # language they speak, and the app prefers Levantine (ajp/apc) over other

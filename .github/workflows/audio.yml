@@ -1,0 +1,87 @@
+name: Fetch and build word audio
+
+# Wikimedia is unreachable from some development environments, and the corpus
+# is far too large to carry in git. A runner has open network access and a
+# throwaway disk, so it does the fetching: it pulls a Lingua Libre category,
+# rebuilds the clips the app ships, and commits only those plus an inventory of
+# what the category holds.
+on:
+  workflow_dispatch:
+    inputs:
+      category:
+        description: Commons category to fetch
+        default: Category:Lingua Libre pronunciation by AdrianAbdulBaha
+        required: true
+      download:
+        description: Download the media (off = inventory only, no media)
+        type: boolean
+        default: true
+      limit:
+        description: Stop after N files (0 = all; use a small number to rehearse)
+        default: "0"
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  audio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # build_audio.py falls back to a pip-installed ffmpeg, but the runner's
+      # own build is faster and already present.
+      - name: Check ffmpeg
+        run: ffmpeg -version | head -1
+
+      # The media is gitignored and the runner is ephemeral, so without a cache
+      # every run re-downloads several hundred megabytes from Wikimedia.
+      - name: Restore corpus cache
+        uses: actions/cache@v4
+        with:
+          path: corpus/commons
+          key: commons-${{ hashFiles('tools/corpus-inventory.json') }}
+          restore-keys: commons-
+
+      # Inputs travel via env, never interpolated into the script: GitHub
+      # expands ${{ }} before the shell parses the line, so a quote in an input
+      # would otherwise run as a command.
+      - name: Fetch from Commons
+        env:
+          CATEGORY: ${{ inputs.category }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          python3 tools/fetch-commons-audio.py \
+            --category "$CATEGORY" \
+            --inventory tools/corpus-inventory.json \
+            --limit "$LIMIT" \
+            ${{ inputs.download && '--download' || '' }}
+
+      - name: What the corpus now holds
+        if: ${{ inputs.download }}
+        run: python3 tools/build_audio.py --report
+
+      - name: Build the clips the app ships
+        if: ${{ inputs.download }}
+        run: python3 tools/build_audio.py
+
+      - name: Commit
+        env:
+          CATEGORY: ${{ inputs.category }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A audio tools/corpus-inventory.json
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          git commit -m "Rebuild word audio from Commons" \
+                     -m "Category: $CATEGORY" -m "Run: $RUN_URL"
+          git push
