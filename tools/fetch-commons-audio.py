@@ -122,27 +122,41 @@ def parse_word(title, speaker):
     return word.strip(), m.group("iso")
 
 
-def download(entry, out_dir, ua):
-    """Fetch one file. Returns 'ok', 'skip', or an error string."""
+def download(entry, out_dir, ua, delay=0.0, retries=5):
+    """Fetch one file. Returns 'ok', 'skip', or an error string.
+
+    Wikimedia throttles aggressively — a shared CI egress IP can be over the
+    limit before this run makes its first request — and answers 429. That is a
+    "come back later", not a failure, so it is retried with a widening wait
+    rather than counted as a lost file.
+    """
     name = urllib.parse.unquote(entry["url"].rsplit("/", 1)[-1])
     path = os.path.join(out_dir, name)
     if os.path.exists(path) and (not entry["size"] or os.path.getsize(path) == entry["size"]):
         return "skip"
     tmp = path + ".part"
-    try:
-        req = urllib.request.Request(entry["url"], headers={"User-Agent": ua})
-        with urllib.request.urlopen(req, timeout=120) as res, open(tmp, "wb") as fh:
-            while True:
-                chunk = res.read(65536)
-                if not chunk:
-                    break
-                fh.write(chunk)
-        os.replace(tmp, path)
-        return "ok"
-    except Exception as err:  # noqa: BLE001 - one bad file must not stop the run
-        if os.path.exists(tmp):
-            os.unlink(tmp)
-        return "error: %s" % err
+    for attempt in range(retries):
+        if delay:
+            time.sleep(delay)
+        try:
+            req = urllib.request.Request(entry["url"], headers={"User-Agent": ua})
+            with urllib.request.urlopen(req, timeout=120) as res, open(tmp, "wb") as fh:
+                while True:
+                    chunk = res.read(65536)
+                    if not chunk:
+                        break
+                    fh.write(chunk)
+            os.replace(tmp, path)
+            return "ok"
+        except Exception as err:  # noqa: BLE001 - one bad file must not stop the run
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+            throttled = isinstance(err, urllib.error.HTTPError) and err.code in (429, 503)
+            if attempt == retries - 1 or not throttled:
+                return "error: %s" % err
+            # Honour Retry-After when Wikimedia sends one; otherwise back off.
+            wait = float(err.headers.get("Retry-After") or 0) or min(60, 5 * 2 ** attempt)
+            time.sleep(wait)
 
 
 def main():
@@ -161,7 +175,13 @@ def main():
     ap.add_argument("--download", action="store_true", help="also fetch the media files")
     ap.add_argument("--out", default="corpus/commons",
                     help="directory for downloaded files (build_audio.py reads corpus/)")
-    ap.add_argument("--jobs", type=int, default=4, help="parallel downloads (keep this modest)")
+    ap.add_argument("--iso", default="ajp,apc",
+                    help="comma-separated Lingua Libre language codes to keep, or "
+                         "'all' (default: ajp,apc — South and North Levantine)")
+    ap.add_argument("--jobs", type=int, default=2,
+                    help="parallel downloads; Wikimedia throttles, so keep this low")
+    ap.add_argument("--delay", type=float, default=0.3,
+                    help="seconds to pause before each download request")
     ap.add_argument("--limit", type=int, default=0, help="stop after N files (for testing)")
     ap.add_argument("--contact", default="https://github.com/alex-o-748/levantine",
                     help="contact URL or email for the User-Agent header")
@@ -189,6 +209,14 @@ def main():
 
     if not files:
         sys.exit("No Lingua Libre files found — check the category name.")
+
+    if args.iso.strip().lower() != "all":
+        keep = {c.strip() for c in args.iso.split(",") if c.strip()}
+        before = len(files)
+        files = [f for f in files if f["iso"] in keep]
+        print("Keeping %d of %d files in %s" % (len(files), before, ", ".join(sorted(keep))))
+        if not files:
+            sys.exit("Nothing in this category matches --iso %s." % args.iso)
 
     total = sum(f["size"] for f in files)
     langs = {}
@@ -255,7 +283,7 @@ def main():
     print("\nDownloading %d files into %s/ with %d jobs ..." % (len(files), args.out, args.jobs))
     done = {"ok": 0, "skip": 0, "error": 0}
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-        futures = {pool.submit(download, f, args.out, ua): f for f in files}
+        futures = {pool.submit(download, f, args.out, ua, args.delay): f for f in files}
         for i, fut in enumerate(concurrent.futures.as_completed(futures), 1):
             result = fut.result()
             if result.startswith("error"):

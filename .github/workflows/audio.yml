@@ -12,6 +12,10 @@ on:
         description: Commons category to fetch
         default: Category:Lingua Libre pronunciation by AdrianAbdulBaha
         required: true
+      iso:
+        description: Lingua Libre language codes to keep ("all" for every language)
+        default: ajp,apc
+        required: true
       download:
         description: Download the media (off = inventory only, no media)
         type: boolean
@@ -55,19 +59,36 @@ jobs:
         env:
           CATEGORY: ${{ inputs.category }}
           LIMIT: ${{ inputs.limit }}
+          ISO: ${{ inputs.iso }}
         run: |
           python3 tools/fetch-commons-audio.py \
             --category "$CATEGORY" \
             --inventory tools/corpus-inventory.json \
             --limit "$LIMIT" \
+            --iso "$ISO" \
             ${{ inputs.download && '--download' || '' }}
 
+      # A run once reported files downloaded while the next step found an empty
+      # corpus. Unexplained, so the tree is printed rather than trusted.
+      - name: What actually landed on disk
+        if: ${{ inputs.download }}
+        run: |
+          echo "corpus tree:"
+          find corpus -maxdepth 2 -type d -print
+          echo "audio files: $(find corpus -type f \( -name '*.wav' -o -name '*.ogg' \) | wc -l)"
+          echo "leftover .part: $(find corpus -type f -name '*.part' | wc -l)"
+          find corpus -type f | head -5
+
+      # Informational: a throttled run can legitimately come back with nothing,
+      # and that should not mask the download diagnostics above.
       - name: What the corpus now holds
         if: ${{ inputs.download }}
+        continue-on-error: true
         run: python3 tools/build_audio.py --report
 
       - name: Build the clips the app ships
         if: ${{ inputs.download }}
+        continue-on-error: true
         run: python3 tools/build_audio.py
 
       - name: Commit
