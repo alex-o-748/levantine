@@ -52,7 +52,8 @@ jobs:
       # The media is gitignored and the runner is ephemeral, so without a cache
       # every run re-downloads several hundred megabytes from Wikimedia.
       - name: Restore corpus cache
-        uses: actions/cache@v4
+        id: corpus-cache
+        uses: actions/cache/restore@v4
         with:
           path: corpus/commons
           key: commons-${{ hashFiles('tools/corpus-inventory.json') }}
@@ -105,6 +106,18 @@ jobs:
       - name: Build the clips the app ships
         if: ${{ inputs.download }}
         run: python3 tools/build_audio.py
+
+      # Saved whatever the build's verdict — actions/cache only saves on success,
+      # and a selection bug threw away a 37-minute download once already. The
+      # download is the expensive half of this job; a later step failing is no
+      # reason to pay for it twice. The cache is visible to this branch and the
+      # default branch only, so a sibling branch still starts cold.
+      - name: Save corpus cache
+        if: ${{ always() && inputs.download }}
+        uses: actions/cache/save@v4
+        with:
+          path: corpus/commons
+          key: commons-${{ github.run_id }}
 
       - name: Commit
         env:

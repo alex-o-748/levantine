@@ -223,6 +223,26 @@ def by_speaker(recs):
     return out
 
 
+# "MahmoudM (AdrianAbdulBaha)" and "AdrianAbdulBaha (MahmoudM)" are one person:
+# a Commons filename names the speaker first and the account that uploaded the
+# recording second, and the Lingua Libre dataset zips name the directory the
+# other way round. A selection written against one corpus would otherwise find
+# nobody in the other, which is how a whole run came back with no clips.
+def speaker_key(name):
+    m = re.fullmatch(r"(.+?)\s*\((.+)\)", name.strip())
+    return frozenset((m.group(1).strip(), m.group(2).strip())) if m else name.strip()
+
+
+def find_speaker(spk, name):
+    if name in spk:
+        return spk[name]
+    key = speaker_key(name)
+    for other, words in spk.items():
+        if speaker_key(other) == key:
+            return words
+    return None
+
+
 # ————————————————————— build —————————————————————
 
 def report(recs):
@@ -251,10 +271,11 @@ def build(recs, spec, out=OUT, force=False):
             for words in spk.values():
                 for key, takes in words.items():
                     available.setdefault(key, []).extend(takes)
-        elif speaker not in spk:
-            sys.exit(f"unknown speaker {speaker!r} — run --report to list them")
         else:
-            available = spk[speaker]
+            available = find_speaker(spk, speaker)
+            if available is None:
+                sys.exit(f"unknown speaker {speaker!r} in lesson {lesson['id']!r}. "
+                         f"The corpus holds: " + ", ".join(sorted(spk)))
         wanted = lesson.get("words", "*")
         if wanted == "*":
             keys = sorted(available)

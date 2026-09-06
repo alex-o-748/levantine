@@ -4,6 +4,10 @@
   "consistent voice while the course as a whole stays multi-speaker — learners",
   "generalise better from varied talkers than from one.",
   "",
+  "Speaker names are as Commons writes them: the person first, the account that",
+  "uploaded the recording in brackets. The dataset zips reverse the two; either",
+  "spelling resolves.",
+  "",
   "\"words\": \"*\" takes everything that speaker recorded; \"vocab\" takes every",
   "word data.js teaches that anyone recorded. Name words explicitly to curate a",
   "subset. Run `python3 tools/build_audio.py --report` to see who recorded what."
@@ -12,7 +16,7 @@
   {
    "id": "people",
    "title": "People, pronouns & politeness",
-   "speaker": "AdrianAbdulBaha (MahmoudM)",
+   "speaker": "MahmoudM (AdrianAbdulBaha)",
    "words": "*",
    "exclude": [
     "صبابا"
@@ -21,13 +25,13 @@
   {
    "id": "food",
    "title": "Food & drink",
-   "speaker": "AdrianAbdulBaha (IbrahimZ)",
+   "speaker": "IbrahimZ (AdrianAbdulBaha)",
    "words": "*"
   },
   {
    "id": "time",
    "title": "Time & when things happen",
-   "speaker": "AdrianAbdulBaha (AseelF)",
+   "speaker": "AseelF (AdrianAbdulBaha)",
    "words": "*"
   },
   {
