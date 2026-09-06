@@ -1,0 +1,4 @@
+# The raw Lingua Libre dump: large, redistributable from upstream, and only
+# ever an input to tools/. Never committed — see corpus/README.md.
+corpus/*
+!corpus/README.md
