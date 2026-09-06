@@ -71,6 +71,42 @@ Deploy from a branch*, pick the branch and `/ (root)`.
 | `data.js` | The vocabulary (`VOCAB`) and listening texts (`TEXTS`) |
 | `app.js` | Flashcards, spaced repetition, audio, Wiktionary API client |
 | `style.css` | Styling (light/dark, RTL-aware) |
+| `tools/fetch-commons-audio.py` | Bulk-index (and optionally download) a Lingua Libre speaker's recordings |
+
+### Bulk audio from Commons
+
+At runtime the app looks up one recording at a time with two Commons search
+calls per word — fine for a handful of cards, slow and online-only at scale.
+A single Lingua Libre speaker's category holds thousands of recordings whose
+filenames already name the word, so one pass over the category gives a
+complete word → file map:
+
+```sh
+# ~10 API calls, no media downloaded: writes audio-index.json
+python3 tools/fetch-commons-audio.py
+
+# same, plus the wav files themselves into audio/
+python3 tools/fetch-commons-audio.py --download
+```
+
+`--category` picks a different speaker (the default is
+*Lingua Libre pronunciation by AdrianAbdulBaha*, a Levantine `ajp`/`apc`
+speaker). Index keys are normalised — diacritics, tatweel and punctuation
+stripped — so they match `VOCAB` spellings. Downloads are resumable: re-run
+the same command to retry anything that failed.
+
+Commons does **not** transcode WAV, so `--download` gets uncompressed PCM
+(the script prints the total before starting). To ship the audio with the
+site, convert it first:
+
+```sh
+mkdir -p audio-opus
+for f in audio/*.wav; do
+  ffmpeg -nostdin -i "$f" -c:a libopus -b:a 24k -ac 1 \
+    "audio-opus/$(basename "${f%.wav}").opus"
+done
+```
+
 
 ### Adding content
 
