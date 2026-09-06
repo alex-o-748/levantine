@@ -2,3 +2,7 @@
 # ever an input to tools/. Never committed — see corpus/README.md.
 corpus/*
 !corpus/README.md
+
+# Generated review pages — rebuild with tools/make_review.py
+build/
+__pycache__/
