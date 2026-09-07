@@ -5,17 +5,25 @@
 # one, so this is a one-off batch on a rented GPU rather than anything the app
 # talks to. 56 lines takes minutes; the expensive part is downloading weights.
 #
-#   # Hugging Face Jobs (bills your HF credits, dies when it finishes — so it
-#   # has to push its output somewhere, hence UPLOAD_REPO)
-#   hf jobs run --flavor a10g-small --secrets HF_TOKEN \
-#       pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime \
-#       bash -c "git clone --depth 1 $REPO /src && UPLOAD_REPO=you/yalla-synth /src/tools/synth_job.sh"
+# Hugging Face Jobs — bills your HF credits, and the container is destroyed the
+# moment the command exits, so UPLOAD_REPO is not optional there: it is the only
+# way the clips get out. `--timeout` is, because Jobs defaults to 30 minutes and
+# weight downloads alone can outlast that. The pytorch images have no git, hence
+# the apt line.
 #
-#   # Colab / vast.ai / any box with a GPU and the repo already on it
+#   hf jobs run --flavor a10g-small --timeout 2h --secrets HF_TOKEN \
+#     pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime bash -c '
+#       apt-get update -qq && apt-get install -y -qq git &&
+#       git clone --depth 1 -b claude/tts-model-integration-8vzkfe \
+#         https://github.com/alex-o-748/levantine.git /src &&
+#       UPLOAD_REPO=<your-hf-username>/yalla-synth /src/tools/synth_job.sh'
+#
+#   hf jobs logs <job-id>     # follow it; Ctrl-C stops watching, not the job
+#
+# Colab / vast.ai / any box with a GPU and the repo already checked out:
+#
 #   ./tools/synth_job.sh
-#
-#   # one backend only
-#   BACKENDS=omnivoice ./tools/synth_job.sh
+#   BACKENDS=omnivoice ./tools/synth_job.sh     # one backend only
 #
 # Then bring build/synth/ back to a checkout, listen to
 # `python3 tools/synth_lines.py --compare`, and ship the winner with
@@ -43,7 +51,8 @@ fi
 # ffmpeg does the trim/level/transcode that makes a synthetic line sit at the
 # same loudness as the Lingua Libre word clips. imageio-ffmpeg ships a static
 # binary, which is the one dependency that reliably is not in a CUDA image.
-pip install --quiet --upgrade pip
+# Not `pip install -U pip` first: on a Debian-packaged pip that fails outright
+# ("RECORD file not found"), and under `set -e` it takes the whole run with it.
 pip install --quiet imageio-ffmpeg soundfile
 
 for backend in $BACKENDS; do
@@ -73,7 +82,11 @@ if [ -n "$UPLOAD_REPO" ]; then
   # have to leave before it does. A private dataset repo is the cheapest place
   # to put them; download it, unpack into build/, then --compare locally.
   echo "== upload to $UPLOAD_REPO =="
-  pip install --quiet "huggingface_hub[cli]"
+  pip install --quiet huggingface_hub          # ships the `hf` command itself
   hf upload "$UPLOAD_REPO" build/synth.tar.gz synth.tar.gz --repo-type dataset --private
-  echo "hf download $UPLOAD_REPO synth.tar.gz --repo-type dataset --local-dir build"
+  echo
+  echo "Fetch it back into a checkout with:"
+  echo "  hf download $UPLOAD_REPO synth.tar.gz --repo-type dataset --local-dir ."
+  echo "  mkdir -p build && tar -xzf synth.tar.gz -C build"
+  echo "  python3 tools/synth_lines.py --compare"
 fi
