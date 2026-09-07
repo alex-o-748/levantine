@@ -28,7 +28,29 @@
   "                per-character mapping exists to avoid."
  ],
 
- "dialect": "Palestinian Lahgtna",
+ "_dialect_note": [
+  "EMPTY ON PURPOSE, and appended to the OmniVoice instruct when set.",
+  "",
+  "OmniVoice's upstream README advertises Arabic dialect attributes for voice",
+  "design (\"Egyptian Lahgtna, Saudi Lahgtna, etc.\"), but the v2 checkpoint",
+  "rejects them: its instruct vocabulary is closed and holds none. Setting this",
+  "to \"Palestinian Lahgtna\" failed every line with",
+  "",
+  "    ValueError: Unsupported instruct items found in male, Palestinian Lahgtna",
+  "",
+  "The whole accepted English vocabulary, as the model reports it:",
+  "  male, female",
+  "  child, teenager, young adult, middle-aged, elderly",
+  "  very low pitch, low pitch, moderate pitch, high pitch, very high pitch",
+  "  whisper",
+  "  american, australian, british, canadian, chinese, indian, japanese,",
+  "  korean, portuguese, russian accent",
+  "",
+  "So the dialect cannot travel through the instruct. It comes from the",
+  "fine-tune and from the Levantine text being read — which is what the",
+  "compare page is for: confirm by ear that it does."
+ ],
+ "dialect": "",
 
  "_speed": [
   "Under 1.0 because these are A1 listening texts. Slow enough to follow, not",

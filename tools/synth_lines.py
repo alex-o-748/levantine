@@ -131,15 +131,32 @@ def plan(texts, cfg):
 
 # ————————————————————— backends —————————————————————
 
+# The instruct string is built here rather than on the class so it can be
+# checked before any weights are downloaded — see OmniVoice.precheck.
+def build_instruct(job, dialect):
+    if job.voice.get("instruct"):
+        return job.voice["instruct"]
+    # Attributes are comma-separated and freely combinable; gender is the only
+    # one the config asks for, dialect is global — and, on this checkpoint,
+    # normally empty. See synth.json.
+    bits = [job.voice.get("gender", "female")]
+    if dialect:
+        bits.append(dialect)
+    return ", ".join(bits)
+
+
 class OmniVoice:
     """oddadmix/lahgtna-omnivoice-v2, via the `lahgtna-omnivoice` package.
 
-    Voice design (`instruct`) rather than cloning by default. Upstream warns
-    that voice design was trained on Chinese and English only and generalises
-    unevenly, but the Lahgtna fine-tune adds the Arabic dialect attributes, and
-    the alternative — cloning — needs 3-10 s of reference speech that this
-    project does not have going spare. Set `ref`/`ref_text` on a voice in
-    synth.json to clone instead; see the note there before you do.
+    Voice design (`instruct`) rather than cloning by default: cloning needs
+    3-10 s of reference speech this project does not have going spare. Set
+    `ref`/`ref_text` on a voice in synth.json to clone instead; see the note
+    there before you do.
+
+    The instruct vocabulary is closed and small — gender, age, pitch, whisper,
+    and a list of non-Arabic accents. Anything outside it is rejected, so the
+    dialect does NOT travel through the instruct on this checkpoint; it comes
+    from the fine-tune and from the Levantine text being read.
     """
 
     name = "omnivoice"
@@ -161,15 +178,30 @@ class OmniVoice:
         print(f"loading {cfg['model']} on {device} …")
         self.model = _Model.from_pretrained(cfg["model"], device_map=device, dtype=dtype)
 
-    def instruct_for(self, job):
-        if job.voice.get("instruct"):
-            return job.voice["instruct"]
-        # Attributes are comma-separated and freely combinable; gender is the
-        # only one the config asks for, dialect is global.
-        bits = [job.voice.get("gender", "female")]
-        if self.dialect:
-            bits.append(self.dialect)
-        return ", ".join(bits)
+    # The model validates the instruct inside generate(), which is after 3 GB of
+    # weights have been fetched and loaded — so a single unusable attribute costs
+    # the whole download before it says so. The resolver imports on its own, so
+    # run it first against every distinct instruct the job list will produce.
+    @staticmethod
+    def precheck(jobs, cfg):
+        try:
+            from omnivoice.models.omnivoice import _resolve_instruct
+        except Exception:
+            return  # private helper, and not worth failing over: generate() still checks
+        dialect = cfg.get("dialect", "")
+        seen = {}
+        for job in jobs:
+            if not job.voice.get("ref"):
+                seen.setdefault(build_instruct(job, dialect), job.voice_name)
+        for instruct, voice in sorted(seen.items()):
+            try:
+                _resolve_instruct(instruct, use_zh=False)
+            except Exception as e:
+                sys.exit(f"{CONFIG.name} produces an instruct this model rejects, for "
+                         f"{voice!r}:\n\n{e}\n\nFix `dialect` or that voice's `instruct` "
+                         f"in {CONFIG.name}. Note the vocabulary is closed and holds no "
+                         f"Arabic dialects: the dialect comes from the text, not the "
+                         f"instruct.")
 
     def generate(self, job, dst, speed):
         import soundfile as sf
@@ -182,7 +214,7 @@ class OmniVoice:
             if job.voice.get("ref_text"):
                 kwargs["ref_text"] = job.voice["ref_text"]
         else:
-            kwargs["instruct"] = self.instruct_for(job)
+            kwargs["instruct"] = build_instruct(job, self.dialect)
         audio = self.model.generate(**kwargs)
         sf.write(str(dst), audio[0], 24000)
 
@@ -296,6 +328,10 @@ def stage(name, cfg, jobs, root=STAGE, device=None, force=False):
     ffmpeg = find_ffmpeg()
     out = root / name
     out.mkdir(parents=True, exist_ok=True)
+    # Anything checkable without the weights is checked before the download.
+    cls = {"omnivoice": OmniVoice, "leva": Leva}[name]
+    if hasattr(cls, "precheck"):
+        cls.precheck(jobs, cfg)
     backend = open_backend(name, cfg, device)
     if hasattr(backend, "validate"):
         backend.validate(jobs)
