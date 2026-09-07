@@ -9,13 +9,13 @@
 # moment the command exits, so UPLOAD_REPO is not optional there: it is the only
 # way the clips get out. `--timeout` is, because Jobs defaults to 30 minutes and
 # weight downloads alone can outlast that. The pytorch images have no git, hence
-# the apt line.
+# the apt line. The clone takes the default branch on purpose — pinning a branch
+# here rots the moment it merges and is deleted; add -b yourself to test one.
 #
 #   hf jobs run --flavor a10g-small --timeout 2h --secrets HF_TOKEN \
 #     pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime bash -c '
 #       apt-get update -qq && apt-get install -y -qq git &&
-#       git clone --depth 1 -b claude/tts-model-integration-8vzkfe \
-#         https://github.com/alex-o-748/levantine.git /src &&
+#       git clone --depth 1 https://github.com/alex-o-748/levantine.git /src &&
 #       UPLOAD_REPO=<your-hf-username>/yalla-synth /src/tools/synth_job.sh'
 #
 #   hf jobs logs <job-id>     # follow it; Ctrl-C stops watching, not the job
