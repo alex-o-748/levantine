@@ -117,6 +117,20 @@ Clips are keyed by position but validated against the words they were generated
 from, so editing a line in `data.js` retires its audio instead of leaving the
 old sentence playing under the new text.
 
+### Known rough edge: short lines are rushed
+
+The first listening pass found `omnivoice` good on long lines and noticeably
+too fast on short ones — faster than anyone actually speaks, and worse than
+that for a learner, who needs the short exchanges (*مرحبا!*, *تكرم*, *تلاتة
+ونص*) most of all. `speed` is a single global factor, so lowering it to fix the
+short lines drags the long ones.
+
+The likely fix is per-line duration rather than a global rate: `model.generate()`
+accepts `duration` (seconds, overriding `speed`), so a floor computed from the
+line's length — enough that a four-word line cannot be crammed into half a
+second — would even this out without slowing the passages that already work.
+Untried; it is the first thing to reach for when this becomes worth fixing.
+
 ## Running it
 
 It's a static site — no build step, no dependencies.
