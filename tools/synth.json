@@ -61,18 +61,30 @@
 
  "default": { "gender": "female" },
 
+ "_voices_note": [
+  "`leva_speaker` names one of leva-tts's reference clips (reference_audios/ in",
+  "the model repo): Amina, Badr, Fadi, Fatma, Haneen, Lamyaa, Mohamed, Mona,",
+  "Rami, Saad — five male, five female. Run `synth_lines.py --backend leva",
+  "--list-voices` to print what the checkpoint currently ships.",
+  "",
+  "Eleven characters share ten clips, so one repeats. What must never repeat is",
+  "two characters inside the SAME text: the cafe has two men talking to each",
+  "other and the phone call has two women, and a dialogue where both parties",
+  "sound identical is worse than no audio. Amina therefore covers both ليلى",
+  "(intro) and الراوية (myday), which never appear together."
+ ],
  "voices": {
-  "سامر":     { "gender": "male",   "leva_speaker": "" },
-  "ليلى":     { "gender": "female", "leva_speaker": "" },
-  "الغرسون":  { "gender": "male",   "leva_speaker": "" },
-  "رنا":      { "gender": "female", "leva_speaker": "" },
-  "فادي":     { "gender": "male",   "leva_speaker": "" },
-  "الزبونة":  { "gender": "female", "leva_speaker": "" },
-  "البياع":   { "gender": "male",   "leva_speaker": "" },
-  "ريم":      { "gender": "female", "leva_speaker": "" },
-  "نور":      { "gender": "female", "leva_speaker": "" },
-  "الراوية":  { "gender": "female", "leva_speaker": "" },
-  "الراوي":   { "gender": "male",   "leva_speaker": "" }
+  "سامر":     { "gender": "male",   "leva_speaker": "Badr" },
+  "ليلى":     { "gender": "female", "leva_speaker": "Amina" },
+  "الغرسون":  { "gender": "male",   "leva_speaker": "Mohamed" },
+  "رنا":      { "gender": "female", "leva_speaker": "Fatma" },
+  "فادي":     { "gender": "male",   "leva_speaker": "Fadi" },
+  "الزبونة":  { "gender": "female", "leva_speaker": "Mona" },
+  "البياع":   { "gender": "male",   "leva_speaker": "Saad" },
+  "ريم":      { "gender": "female", "leva_speaker": "Haneen" },
+  "نور":      { "gender": "female", "leva_speaker": "Lamyaa" },
+  "الراوية":  { "gender": "female", "leva_speaker": "Amina" },
+  "الراوي":   { "gender": "male",   "leva_speaker": "Rami" }
  },
 
  "_texts": [

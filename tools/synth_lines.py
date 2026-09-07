@@ -38,7 +38,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from build_audio import TRANSLIT, duration, find_ffmpeg, normalise, transcode
+from build_audio import AUDIO_EXT, TRANSLIT, duration, find_ffmpeg, normalise, transcode
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data.js"
@@ -231,11 +231,19 @@ class OmniVoice:
 class Leva:
     """mohammedaly22/leva-tts — an XTTS-v2 fine-tune, loaded through Coqui TTS.
 
-    XTTS fine-tunes are published as a checkpoint plus config plus speaker file
-    rather than through a single loader, and the exact filenames vary by
-    publisher. So: pull the repo, find those three by their conventional names,
-    and say plainly what was in the snapshot if they are not there — better
-    than a stack trace from inside the library.
+    What the repo actually ships decides the shape of this class:
+
+    - `best_model.pth` and `config.json`, but **no `vocab.json`** — the
+      tokenizer is inherited from the base XTTS-v2 repo and has to be fetched
+      from there separately, or load_checkpoint dies on a missing vocab.
+    - `reference_audios/` — ten clips (Amina, Badr, Fadi, Fatma, Haneen,
+      Lamyaa, Mohamed, Mona, Rami, Saad). These are the "built-in speakers":
+      there is no speaker table to look a name up in, so a voice is chosen by
+      conditioning on one of these clips. `leva_speaker` names one of them.
+
+    Latents are computed once per speaker, not once per line — conditioning is
+    the expensive part and eleven voices across 56 lines would otherwise redo
+    it fifty-six times.
     """
 
     name = "leva"
@@ -260,16 +268,38 @@ class Leva:
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         print(f"downloading {cfg['model']} …")
         repo = Path(snapshot_download(cfg["model"]))
+        self.refs = self._references(repo)
         conf = self._find(repo, ["config.json"])
         ckpt = self._find(repo, ["model.pth", "best_model.pth", "checkpoint.pth"])
         vocab = self._find(repo, ["vocab.json"], required=False)
+        if vocab is None:
+            # The fine-tune ships weights and config but inherits the tokenizer,
+            # so XTTS raises "`vocab.json` file not found in `None`" unless it
+            # is fetched from the base repo and passed in explicitly.
+            base = cfg.get("base_model", "coqui/XTTS-v2")
+            print(f"no vocab.json in the fine-tune — taking it from {base} …")
+            from huggingface_hub import hf_hub_download
+            vocab = Path(hf_hub_download(base, "vocab.json"))
         config = XttsConfig()
         config.load_json(str(conf))
         self.model = Xtts.init_from_config(config)
         self.model.load_checkpoint(config, checkpoint_path=str(ckpt),
-                                   vocab_path=str(vocab) if vocab else None,
-                                   use_deepspeed=False)
+                                   vocab_path=str(vocab), use_deepspeed=False)
         self.model.to(self.device)
+        self._latents = {}
+
+    # The reference clips are the voices. Named by file stem, which is what
+    # `leva_speaker` in synth.json holds.
+    @staticmethod
+    def _references(repo):
+        refs = {}
+        for d in ("reference_audios", "references", "speakers"):
+            for p in sorted((repo / d).glob("*")) if (repo / d).is_dir() else []:
+                if p.suffix.lower() in AUDIO_EXT:
+                    refs.setdefault(p.stem, p)
+            if refs:
+                break
+        return refs
 
     @staticmethod
     def _find(repo, names, required=True):
@@ -284,8 +314,7 @@ class Leva:
                  f"Point tools/synth.json at the right files, or use --backend omnivoice.")
 
     def voices(self):
-        sm = getattr(self.model, "speaker_manager", None)
-        return sorted(getattr(sm, "speakers", {}) or {}) if sm else []
+        return sorted(self.refs)
 
     # Checked before the first line rather than at the line that trips it: an
     # hour of generation that dies two thirds through on an unmapped character
@@ -293,9 +322,9 @@ class Leva:
     def validate(self, jobs):
         known = self.voices()
         if not known:
-            sys.exit(f"{self.cfg['model']} exposes no built-in speakers, so every line "
-                     f"would be read in one default voice. Use --backend omnivoice, or "
-                     f"give each voice in {CONFIG.name} a reference clip.")
+            sys.exit(f"{self.cfg['model']} ships no reference clips where this expects "
+                     f"them, so every line would be read in one default voice. "
+                     f"Use --backend omnivoice.")
         missing, unknown = set(), set()
         for job in jobs:
             name = job.voice.get("leva_speaker")
@@ -307,18 +336,29 @@ class Leva:
                      + (f"unknown `leva_speaker` for: {', '.join(sorted(unknown))}\n" if unknown else "")
                      + f"This checkpoint ships: {', '.join(known)}")
 
+    def latents_for(self, name):
+        if name not in self._latents:
+            print(f"  conditioning on {self.refs[name].name} …")
+            self._latents[name] = self.model.get_conditioning_latents(
+                audio_path=[str(self.refs[name])])
+        return self._latents[name]
+
     def generate(self, job, dst, speed):
-        import torch, torchaudio
-        # Addressed by key rather than unpacked positionally — the entry is a
-        # dict, and which of the two tensors comes out first is not a contract.
-        entry = self.model.speaker_manager.speakers[job.voice["leva_speaker"]]
+        import numpy as np
+        import soundfile as sf
+        gpt_cond_latent, speaker_embedding = self.latents_for(job.voice["leva_speaker"])
         out = self.model.inference(text=job.ar, language=self.cfg.get("language", "ar"),
-                                   gpt_cond_latent=entry["gpt_cond_latent"],
-                                   speaker_embedding=entry["speaker_embedding"],
+                                   gpt_cond_latent=gpt_cond_latent,
+                                   speaker_embedding=speaker_embedding,
                                    speed=speed)
         wav = out["wav"]
-        wav = wav if hasattr(wav, "dim") else torch.tensor(wav)
-        torchaudio.save(str(dst), wav.detach().cpu().reshape(1, -1), 24000)
+        # soundfile rather than torchaudio.save: current torchaudio routes saving
+        # through TorchCodec and raises ImportError without it. The omnivoice
+        # backend already writes this way, so both paths need one library.
+        if hasattr(wav, "detach"):
+            wav = wav.detach().cpu().numpy()
+        # XTTS decodes at 24 kHz; transcode() takes it to the app's format next.
+        sf.write(str(dst), np.asarray(wav).reshape(-1), 24000)
 
 
 def open_backend(name, cfg, device=None):

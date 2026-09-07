@@ -100,7 +100,14 @@ than shipping it; that failure is the entire reason this pipeline is a review
 step and not a build step.
 
 `tools/synth.json` assigns a voice per dialogue character, so a conversation
-sounds like two people. It also holds the `speed` (0.9 — these are A1 listening
+sounds like two people. The two backends express that differently: `omnivoice`
+takes a voice-design string built from `gender` (its instruct vocabulary is
+closed — gender, age, pitch, whisper and ten non-Arabic accents, no dialects),
+while `leva` conditions on one of the ten reference clips its model repo ships,
+named in `leva_speaker`. `--backend leva --list-voices` prints the clips the
+checkpoint currently holds. Eleven characters share ten clips, so one repeats;
+what the assignment guarantees is that no two characters *within one text*
+share a voice. It also holds the `speed` (0.9 — these are A1 listening
 texts) and the dialect. The voice-cloning fields are deliberately empty: the
 Lingua Libre recordings are single words of about 0.7 s and far too short to
 clone from, and making a named contributor appear to say words they never
