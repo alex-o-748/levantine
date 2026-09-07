@@ -117,6 +117,21 @@ main { max-width: 680px; margin: 0 auto; padding: 1.2rem 1rem 4rem; }
   border-radius: 999px;
   padding: .25rem .7rem;
 }
+/* Synthetic audio never wears the same clothes as a recording. Word buttons
+   play a real speaker and stay plain; anything reading a whole sentence is a
+   model, and says so — in colour, and with the ◈ that the Settings credit and
+   the text list use for the same thing. */
+.btn.synthetic { border-color: var(--gold); color: var(--gold); }
+.btn.synthetic.primary { background: transparent; }
+.btn.audio.synthetic.playing { background: transparent; box-shadow: 0 0 0 2px var(--gold) inset; }
+.synth-dot { color: var(--gold); }
+.synth-note {
+  font-size: .82rem;
+  color: var(--muted);
+  border-inline-start: 3px solid var(--gold);
+  padding: .35rem 0 .35rem .7rem;
+  margin: 0 0 .9rem;
+}
 
 /* ——— Cards ——— */
 .card {
@@ -240,8 +255,12 @@ main { max-width: 680px; margin: 0 auto; padding: 1.2rem 1rem 4rem; }
   border-radius: 12px;
   padding: .7rem .9rem;
 }
+.line.current { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
 .line-body { flex: 1; }
-.line-ar { font-size: 1.35rem; line-height: 1.9; cursor: pointer; }
+.line-ar { font-size: 1.35rem; line-height: 1.9; cursor: pointer; transition: filter .25s; }
+/* Listening mode: the line is there to be heard first, so it is blurred rather
+   than hidden — you can see how long it is and where the speaker changes. */
+.line-ar.veiled { filter: blur(9px); user-select: none; }
 .line-sp { color: var(--accent); font-weight: 600; }
 .line-en { color: var(--muted); font-size: .92rem; margin-top: .15rem; }
 

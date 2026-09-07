@@ -61,17 +61,69 @@ const clipsReady = fetch("audio/manifest.json")
 function clipFor(word) { return clips.get(normAr(word.ar)); }
 function hasClip(word) { return clips.has(normAr(word.ar)); }
 
+// ————————————————————— Synthetic lines —————————————————————
+
+// Sentences are the one thing recordings can't cover: Lingua Libre is a
+// word-at-a-time corpus, so the dialogues had no audio at all. They are
+// synthesised instead — by a model trained on Levantine, not the browser's
+// Modern Standard voice that this app threw out — and generated at build time
+// by tools/synth_lines.py, listened to, and committed like any other clip.
+//
+// Words are deliberately NOT synthesised. A model reading a bare citation form
+// is where it drifts on stress and vowel length, and that is precisely what a
+// flashcard would drill in. A word is a real recording or it is silent.
+let synthLines = new Map();     // textId -> [{ i, ar, file, dur, voice }]
+let synthEngine = null;         // which model spoke them, for the credit
+const synthReady = fetch("audio/synth-manifest.json")
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(m => {
+    for (const [id, lines] of Object.entries(m.texts || {})) synthLines.set(id, lines);
+    synthEngine = m.engine || null;
+  })
+  // Optional by design: no manifest simply means nobody has run the synthesis
+  // yet, and the texts stay the reading exercise they were.
+  .catch(() => { synthLines = new Map(); });
+
+// A clip is keyed by position but validated against the words it was generated
+// from, so editing a line in data.js retires its audio instead of leaving the
+// old sentence playing under the new text.
+function synthFor(text, i) {
+  const clip = (synthLines.get(text.id) || []).find(c => c.i === i);
+  return clip && normAr(clip.ar) === normAr(text.lines[i].ar) ? clip : null;
+}
+function hasSynth(text) {
+  return text.lines.some((_, i) => synthFor(text, i));
+}
+
 function renderCredits() {
   const el = document.getElementById("credits");
   if (!el || !credits.length) return;
   el.innerHTML =
-    `<h3>Recordings</h3><p class="muted">Every sound this app makes is a native ` +
+    `<h3>Recordings</h3><p class="muted">Every word this app speaks is a native ` +
     `South Levantine speaker: ` +
     credits.map(c => `<b>${esc(c)}</b>`).join(", ") +
     `, recorded for <a href="https://lingualibre.org/" target="_blank" rel="noopener">Lingua Libre</a> ` +
     `and used under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" ` +
     `rel="noopener">CC BY-SA 4.0</a>. ${clips.size} of ${VOCAB.length} words are covered; ` +
-    `the rest are shown without audio rather than read by a synthetic voice.</p>`;
+    `the rest are shown without audio rather than spoken by a machine.</p>` +
+    (synthEngine ? synthCredit() : "");
+}
+
+// Named, not buried. A learner deciding how much to trust what they just heard
+// needs to know whether it came from a person, and which model it came from if
+// it didn't.
+function synthCredit() {
+  const link = synthEngine.license_url
+    ? `<a href="${esc(synthEngine.license_url)}" target="_blank" rel="noopener">${esc(synthEngine.model)}</a>`
+    : `<b>${esc(synthEngine.model)}</b>`;
+  return `<h3>Synthetic voices</h3><p class="muted">The dialogue lines under ` +
+    `<b>Texts</b> have no recording — no word-at-a-time corpus can supply a whole ` +
+    `sentence — so they are spoken by ${link}, a text-to-speech model trained on ` +
+    `Arabic dialects rather than Modern Standard` +
+    (synthEngine.dialect ? ` (${esc(synthEngine.dialect)})` : "") +
+    `. They are marked <span class="synth-dot">◈</span> wherever they play. Individual ` +
+    `words are never synthesised: those are recordings or silence.` +
+    (synthEngine.license ? ` Model licence: ${esc(synthEngine.license)}.` : "") + `</p>`;
 }
 
 let currentAudio = null;
@@ -97,10 +149,12 @@ function tryPlayRecording(url) {
   });
 }
 
-// A word is played from its recording or not at all. Speech synthesis used to
-// cover the gap and it made the app worse: MSA-trained voices read the dialect
-// with classical endings and a qaf nobody says here, teaching a pronunciation
-// the learner then has to unlearn. Silence is the honest answer.
+// A word is played from its recording or not at all. The browser's own speech
+// synthesis used to cover the gap and it made the app worse: MSA-trained voices
+// read the dialect with classical endings and a qaf nobody says here, teaching
+// a pronunciation the learner then has to unlearn. Silence is the honest answer
+// for a word; a dialect-trained model reading a whole sentence is a different
+// question, and one the Texts tab answers below.
 async function playWord(word, btn) {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
   const clip = clipFor(word);
@@ -110,6 +164,24 @@ async function playWord(word, btn) {
   const audio = await tryPlayRecording(clip.file);
   if (audio) audio.onended = audio.onerror = done;
   else done();  // 404 or an undecodable file: nothing to fall back to
+}
+
+// Plays a clip and resolves when it stops, so lines can be chained into a
+// whole-dialogue playthrough.
+async function playClip(file, btn) {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  if (btn) btn.classList.add("playing");
+  const audio = await tryPlayRecording(file);
+  return new Promise(resolve => {
+    const done = () => { if (btn) btn.classList.remove("playing"); resolve(); };
+    if (audio) audio.onended = audio.onerror = done;
+    else done();
+  });
+}
+
+function stopAudio() {
+  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+  document.querySelectorAll(".btn.playing").forEach(b => b.classList.remove("playing"));
 }
 
 // ————————————————————— Wiktionary —————————————————————
@@ -176,6 +248,8 @@ document.getElementById("tabs").addEventListener("click", e => {
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t === btn));
   document.querySelectorAll(".view").forEach(v =>
     v.classList.toggle("active", v.id === "view-" + btn.dataset.tab));
+  // A dialogue playing on into another tab is nobody's intention.
+  stopPlayAll();
   if (btn.dataset.tab === "today") renderToday();
 });
 
@@ -354,19 +428,25 @@ function renderTextList() {
     <button class="card text-card" data-id="${t.id}">
       <span class="text-level">${t.level}</span>
       <span class="text-title-ar" dir="rtl">${esc(t.titleAr)}</span>
-      <span class="text-title-en">${esc(t.title)} · ${t.lines.length} lines</span>
+      <span class="text-title-en">${esc(t.title)} · ${t.lines.length} lines${
+        hasSynth(t) ? ` · <span class="synth-dot" title="Synthetic voices">◈</span> audio` : ""}</span>
     </button>`).join("");
   textList.querySelectorAll(".text-card").forEach(c =>
     c.onclick = () => openText(TEXTS.find(t => t.id === c.dataset.id)));
 }
 
-// The dialogues were built around per-line playback by speech synthesis. With
-// synthesis gone there is no sentence audio to give — recordings exist for
-// single words only — so a text is now a reading exercise: the Arabic, and the
-// English on demand. Nothing here pretends to be a listening drill.
+let playingAll = false;
+
+// A text is a listening drill when it has audio and a reading exercise when it
+// doesn't — the same view either way, so a half-synthesised corpus doesn't need
+// two code paths. Its audio is always synthetic (no recording covers a whole
+// sentence), which is why every play control here carries the ◈ mark: a learner
+// should never have to guess whether they just heard a person.
 function openText(text) {
   textList.classList.add("hidden");
   textView.classList.remove("hidden");
+  playingAll = false;
+  const spoken = hasSynth(text);
   textView.innerHTML = `
     <div class="text-head">
       <button class="btn ghost" id="btn-texts-back">← Texts</button>
@@ -374,36 +454,108 @@ function openText(text) {
       <span class="text-level">${text.level}</span>
     </div>
     <div class="text-toolbar">
+      ${spoken ? `<button class="btn primary synthetic" id="btn-playall">▶ Play all</button>
+      <label class="toggle"><input type="checkbox" id="chk-listening" checked> Listening mode (hide text)</label>` : ""}
       <label class="toggle"><input type="checkbox" id="chk-trans"> Show translation</label>
     </div>
-    <p class="muted listen-hint">
-      Read the Arabic first, then tap a line for the English.
+    ${spoken ? `<p class="muted listen-hint" id="listen-hint">
+      🎧 Listen first. Tap ▶ on a line to hear it, tap the blurred line to reveal it.
     </p>
+    <p class="synth-note">
+      <span class="synth-dot">◈</span> These lines are read by
+      ${synthEngine ? esc(synthEngine.model) : "a text-to-speech model"}, not by a
+      native speaker. Trust the word recordings over them for pronunciation.
+    </p>` : `<p class="muted listen-hint">
+      Read the Arabic first, then tap a line for the English.
+    </p>`}
     <div class="lines" id="lines">
-      ${text.lines.map((l, i) => `
+      ${text.lines.map((l, i) => {
+        const clip = synthFor(text, i);
+        return `
         <div class="line" data-i="${i}">
+          ${clip ? `<button class="btn audio small line-play synthetic" title="Play line (synthetic voice)">▶</button>` : ""}
           <div class="line-body">
-            <div class="line-ar" dir="rtl">
+            <div class="line-ar${spoken ? " veiled" : ""}" dir="rtl">
               ${l.sp ? `<span class="line-sp">${esc(l.sp)}:</span> ` : ""}${esc(l.ar)}
             </div>
             <div class="line-en hidden">${esc(l.en)}</div>
           </div>
-        </div>`).join("")}
+        </div>`;
+      }).join("")}
     </div>`;
 
-  document.getElementById("btn-texts-back").onclick = renderTextList;
+  document.getElementById("btn-texts-back").onclick = () => { stopPlayAll(); renderTextList(); };
 
   const linesEl = document.getElementById("lines");
   const chkTrans = document.getElementById("chk-trans");
+  const chkListening = document.getElementById("chk-listening");
 
-  chkTrans.onchange = () => linesEl.querySelectorAll(".line-en").forEach(el =>
-    el.classList.toggle("hidden", !chkTrans.checked));
+  function applyModes() {
+    const veil = chkListening && chkListening.checked;
+    linesEl.querySelectorAll(".line-ar").forEach(el =>
+      el.classList.toggle("veiled", veil && !el.classList.contains("revealed")));
+    linesEl.querySelectorAll(".line-en").forEach(el =>
+      el.classList.toggle("hidden", !chkTrans.checked));
+    const hint = document.getElementById("listen-hint");
+    if (hint && chkListening) hint.classList.toggle("hidden", !veil);
+  }
+  chkTrans.onchange = applyModes;
+  if (chkListening) chkListening.onchange = () => {
+    // Re-veil everything when listening mode is switched back on, so the
+    // exercise resets rather than resuming with half the text already given up.
+    linesEl.querySelectorAll(".line-ar").forEach(el => el.classList.remove("revealed"));
+    applyModes();
+  };
 
-  // Tapping one line shows just that translation, whatever the toggle says.
+  function highlight(i) {
+    linesEl.querySelectorAll(".line").forEach((el, j) =>
+      el.classList.toggle("current", j === i));
+  }
+
   linesEl.addEventListener("click", e => {
     const line = e.target.closest(".line");
-    if (line) line.querySelector(".line-en").classList.remove("hidden");
+    if (!line) return;
+    const i = +line.dataset.i;
+    if (e.target.closest(".line-play")) {
+      stopPlayAll();
+      highlight(i);
+      const clip = synthFor(text, i);
+      if (clip) playClip(clip.file, e.target.closest(".line-play"));
+      return;
+    }
+    // Tapping the line itself reveals it: the Arabic when it's veiled, and the
+    // translation either way.
+    const arEl = line.querySelector(".line-ar");
+    arEl.classList.add("revealed");
+    arEl.classList.remove("veiled");
+    line.querySelector(".line-en").classList.remove("hidden");
   });
+
+  const playAll = document.getElementById("btn-playall");
+  if (playAll) playAll.onclick = async function () {
+    if (playingAll) { stopPlayAll(); return; }
+    playingAll = true;
+    this.textContent = "⏸ Stop";
+    for (let i = 0; i < text.lines.length && playingAll; i++) {
+      const clip = synthFor(text, i);
+      if (!clip) continue;
+      highlight(i);
+      await playClip(clip.file, null);
+      if (playingAll) await new Promise(r => setTimeout(r, 700));
+    }
+    if (playingAll) { playingAll = false; highlight(-1); }
+    this.textContent = "▶ Play all";
+  };
+
+  applyModes();
+}
+
+function stopPlayAll() {
+  playingAll = false;
+  stopAudio();
+  const btn = document.getElementById("btn-playall");
+  if (btn) btn.textContent = "▶ Play all";
+  document.querySelectorAll(".line.current").forEach(el => el.classList.remove("current"));
 }
 
 // ————————————————————— Settings —————————————————————
@@ -429,9 +581,15 @@ function initSettings() {
 
 // ————————————————————— Boot —————————————————————
 
-// Every view asks which words have a recording, so wait for the manifest
-// rather than render a silent app and correct it a moment later.
-clipsReady.then(() => {
+// Every view asks which words have a recording, and the text list asks which
+// dialogues have audio, so wait for both manifests rather than render a silent
+// app and correct it a moment later. The synthetic one is optional: it settles
+// either way, and its absence just means the texts are a reading exercise.
+Promise.all([clipsReady, synthReady]).then(() => {
+  // Again, now both manifests are in: the word manifest renders the credits as
+  // soon as it lands, and whether the synthetic voices got named there depended
+  // on which fetch happened to finish first.
+  renderCredits();
   if (manifestFailed) {
     document.getElementById("main").insertAdjacentHTML("afterbegin",
       `<p class="voice-hint warn">Word recordings failed to load, so the app has no audio. ` +
