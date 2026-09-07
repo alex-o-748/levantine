@@ -248,8 +248,14 @@ class Leva:
             from TTS.tts.configs.xtts_config import XttsConfig
             from TTS.tts.models.xtts import Xtts
         except ImportError as e:
+            # The usual one here is `isin_mps_friendly`, which transformers
+            # removed in 5.x while coqui-tts still imports it — and installing
+            # the omnivoice backend pulls transformers>=5.3.0 into the same
+            # environment. The pin is the fix, not a reinstall.
             sys.exit(f"{e}. Install the backend first:\n"
-                     f"    pip install coqui-tts huggingface_hub\n"
+                     f"    pip install coqui-tts 'transformers<5' huggingface_hub\n"
+                     f"The pin matters: omnivoice needs transformers>=5.3.0 and coqui-tts\n"
+                     f"needs a symbol 5.x deleted, so the two cannot share an environment.\n"
                      f"See tools/synth_job.sh for a runner that does this for you.")
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         print(f"downloading {cfg['model']} …")

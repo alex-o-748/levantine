@@ -74,6 +74,13 @@ Two backends, both dialect-native, chosen by listening rather than by spec:
 Neither is hosted by any serverless inference provider, and neither needs to
 be: the whole corpus is 56 lines, generated once on one GPU.
 
+The two cannot share a Python environment. `lahgtna-omnivoice` requires
+`transformers>=5.3.0`; `coqui-tts` declares `transformers>=4.57` but imports
+`isin_mps_friendly`, which transformers deleted in 5.x — so pip resolves both
+without complaint and `leva` then fails at import. `synth_job.sh` therefore
+pins each backend's `transformers` and installs immediately before running it,
+which works in either order.
+
 ```sh
 python3 tools/synth_lines.py --plan             # what would be generated, no GPU needed
 ./tools/synth_job.sh                            # both backends on a GPU box

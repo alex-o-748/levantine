@@ -58,11 +58,19 @@ pip install --quiet imageio-ffmpeg soundfile
 for backend in $BACKENDS; do
   echo
   echo "== install $backend =="
+  # The two backends cannot share an environment. omnivoice requires
+  # transformers>=5.3.0; coqui-tts declares transformers>=4.57 but imports
+  # `isin_mps_friendly`, which transformers deleted in 5.x — so pip resolves
+  # both happily and leva then dies at import with
+  #     cannot import name 'isin_mps_friendly' from 'transformers.pytorch_utils'
+  # Hence the explicit <5 pin, and hence installing immediately before each
+  # backend runs rather than once up front: each pass leaves transformers where
+  # the *next* backend's install will put it back, so either order works.
   case "$backend" in
-    omnivoice) pip install --quiet lahgtna-omnivoice ;;
+    omnivoice) pip install --quiet lahgtna-omnivoice "transformers>=5.3.0" ;;
     # coqui-tts is the maintained fork of the (archived) coqui-ai/TTS package
     # that still installs against current torch.
-    leva)      pip install --quiet coqui-tts huggingface_hub ;;
+    leva)      pip install --quiet coqui-tts "transformers<5" huggingface_hub ;;
     *) echo "unknown backend: $backend" >&2; exit 2 ;;
   esac
 
