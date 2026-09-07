@@ -129,6 +129,92 @@ def plan(texts, cfg):
     return jobs
 
 
+# ————————————————————— reference voices —————————————————————
+
+# One pool of reference clips, shared by both backends, because a character's
+# voice should not depend on which model reads the line.
+#
+# It exists because voice design turned out to be unusable for this: OmniVoice
+# invents a fresh speaker on every call, so `instruct: "female"` produced a
+# different woman per line — and a different regional accent with her. The first
+# listening pass caught ج coming out as an Egyptian [g] on some lines and a
+# Levantine [ʒ] on others, from one model, in one dialogue. The instruct
+# vocabulary has no dialect to pin it with, so cloning from a fixed reference is
+# the only lever: it fixes the speaker, and the accent rides along.
+#
+# leva-tts ships ten of them, five male and five female, which is what
+# `references` in synth.json points at by default.
+class References:
+    """The clips named by `ref` in synth.json, and their transcripts if known."""
+
+    def __init__(self, cfg):
+        spec = cfg.get("references") or {}
+        self.clips, self.texts = {}, {}
+        local = spec.get("dir_local")
+        if local:
+            self._scan(ROOT / local)
+            return
+        self.repo, self.subdir = spec.get("repo"), spec.get("dir", "reference_audios")
+
+    def load(self):
+        """Fetch the pool. Separate from __init__ so --plan needs no network."""
+        if self.clips or not getattr(self, "repo", None):
+            return self
+        from huggingface_hub import snapshot_download
+        print(f"fetching reference voices from {self.repo} …")
+        # Only the reference material, not the multi-GB checkpoint that shares
+        # the repo — this is often a different model's repo than the one being
+        # run, and pulling its weights to read ten wav files would be absurd.
+        root = Path(snapshot_download(self.repo, allow_patterns=[
+            f"{self.subdir}/*", "references.json"]))
+        self._scan(root / self.subdir, root / "references.json")
+        return self
+
+    def _scan(self, d, meta=None):
+        for p in sorted(d.glob("*")) if d.is_dir() else []:
+            if p.suffix.lower() in AUDIO_EXT:
+                self.clips.setdefault(p.stem, p)
+        if meta and meta.exists():
+            self.texts = self._transcripts(meta, set(self.clips))
+
+    # references.json is another project's file and its shape is not a contract,
+    # so rather than assume a schema, walk it and take any string that sits next
+    # to a reference's name under a plausible key. Failing to find one is fine:
+    # OmniVoice transcribes the clip with Whisper when ref_text is omitted.
+    @staticmethod
+    def _transcripts(path, names):
+        KEYS = {"text", "transcript", "transcription", "sentence", "ref_text"}
+        found = {}
+
+        def walk(node, name=None):
+            if isinstance(node, dict):
+                here = next((str(node[k]) for k in KEYS
+                             if isinstance(node.get(k), str)), None)
+                who = next((str(node[k]) for k in ("name", "speaker", "id")
+                            if isinstance(node.get(k), str)), None)
+                target = who if who in names else name
+                if here and target in names:
+                    found.setdefault(target, here)
+                for k, v in node.items():
+                    walk(v, k if k in names else name)
+            elif isinstance(node, list):
+                for v in node:
+                    walk(v, name)
+
+        try:
+            walk(json.loads(path.read_text(encoding="utf-8")))
+        except (ValueError, OSError):
+            return {}
+        return found
+
+    def missing(self, jobs):
+        return sorted({j.voice["ref"] for j in jobs
+                       if j.voice.get("ref") and j.voice["ref"] not in self.clips})
+
+    def names(self):
+        return sorted(self.clips)
+
+
 # ————————————————————— backends —————————————————————
 
 # The instruct string is built here rather than on the class so it can be
@@ -148,22 +234,24 @@ def build_instruct(job, dialect):
 class OmniVoice:
     """oddadmix/lahgtna-omnivoice-v2, via the `lahgtna-omnivoice` package.
 
-    Voice design (`instruct`) rather than cloning by default: cloning needs
-    3-10 s of reference speech this project does not have going spare. Set
-    `ref`/`ref_text` on a voice in synth.json to clone instead; see the note
-    there before you do.
+    Cloning from a reference clip, not voice design. Voice design was the
+    original approach and it failed on exactly the thing this project exists to
+    get right: with only `instruct: "male"` to go on, the model invents a new
+    speaker per call, and Arabic speakers it invents are often Egyptian — so ج
+    came out [g] on some lines and [ʒ] on others within a single dialogue. The
+    instruct vocabulary holds no dialect to correct that with. A reference clip
+    fixes the speaker, and the accent comes with it.
 
-    The instruct vocabulary is closed and small — gender, age, pitch, whisper,
-    and a list of non-Arabic accents. Anything outside it is rejected, so the
-    dialect does NOT travel through the instruct on this checkpoint; it comes
-    from the fine-tune and from the Levantine text being read.
+    Voice design remains the fallback for any voice with no `ref`, which is
+    better than nothing but should not be relied on for dialect.
     """
 
     name = "omnivoice"
 
-    def __init__(self, cfg, device=None):
+    def __init__(self, cfg, device=None, refs=None):
         self.cfg = cfg
         self.dialect = cfg.get("_dialect", "")
+        self.refs = refs
         try:
             import torch
             from omnivoice import OmniVoice as _Model
@@ -209,23 +297,35 @@ class OmniVoice:
         if self.cfg.get("num_step"):
             kwargs["num_step"] = self.cfg["num_step"]
         ref = job.voice.get("ref")
-        if ref:
-            kwargs["ref_audio"] = str(ROOT / ref)
-            if job.voice.get("ref_text"):
-                kwargs["ref_text"] = job.voice["ref_text"]
+        if ref and self.refs and ref in self.refs.clips:
+            kwargs["ref_audio"] = str(self.refs.clips[ref])
+            # Passing the transcript when we have it keeps OmniVoice from
+            # running Whisper over the same reference clip on every one of the
+            # 56 lines just to recover text we already knew.
+            text = job.voice.get("ref_text") or self.refs.texts.get(ref)
+            if text:
+                kwargs["ref_text"] = text
         else:
             kwargs["instruct"] = build_instruct(job, self.dialect)
         audio = self.model.generate(**kwargs)
         sf.write(str(dst), audio[0], 24000)
 
     def voices(self):
-        return []  # voice design takes free text; there is no fixed list
+        return self.refs.names() if self.refs else []
 
     def validate(self, jobs):
-        for job in jobs:
-            ref = job.voice.get("ref")
-            if ref and not (ROOT / ref).exists():
-                sys.exit(f"{job.voice_name}: reference clip {ref} not found")
+        if not self.refs:
+            return
+        gone = self.refs.missing(jobs)
+        if gone:
+            sys.exit(f"reference clips not in the pool: {', '.join(gone)}\n"
+                     f"The pool holds: {', '.join(self.refs.names()) or '(empty)'}")
+        # Not fatal — voice design still speaks the line — but it is the mode
+        # that drifts between accents, so it should never happen silently.
+        bare = sorted({j.voice_name for j in jobs if not j.voice.get("ref")})
+        if bare:
+            print(f"warning: no `ref` for {', '.join(bare)} — those lines fall back to "
+                  f"voice design, whose accent is resampled per line.\n", file=sys.stderr)
 
 
 class Leva:
@@ -239,7 +339,7 @@ class Leva:
     - `reference_audios/` — ten clips (Amina, Badr, Fadi, Fatma, Haneen,
       Lamyaa, Mohamed, Mona, Rami, Saad). These are the "built-in speakers":
       there is no speaker table to look a name up in, so a voice is chosen by
-      conditioning on one of these clips. `leva_speaker` names one of them.
+      conditioning on one of these clips. `ref` in synth.json names one.
 
     Latents are computed once per speaker, not once per line — conditioning is
     the expensive part and eleven voices across 56 lines would otherwise redo
@@ -248,8 +348,9 @@ class Leva:
 
     name = "leva"
 
-    def __init__(self, cfg, device=None):
+    def __init__(self, cfg, device=None, refs=None):
         self.cfg = cfg
+        self.pool = refs
         try:
             import torch
             from huggingface_hub import snapshot_download
@@ -289,7 +390,7 @@ class Leva:
         self._latents = {}
 
     # The reference clips are the voices. Named by file stem, which is what
-    # `leva_speaker` in synth.json holds.
+    # `ref` in synth.json holds.
     @staticmethod
     def _references(repo):
         refs = {}
@@ -327,13 +428,13 @@ class Leva:
                      f"Use --backend omnivoice.")
         missing, unknown = set(), set()
         for job in jobs:
-            name = job.voice.get("leva_speaker")
+            name = job.voice.get("ref")
             # Reading every character in one voice silently is worse than
             # stopping: the per-character mapping is the whole point.
             (missing if not name else unknown if name not in known else set()).add(job.voice_name)
         if missing or unknown:
-            sys.exit((f"no `leva_speaker` set for: {', '.join(sorted(missing))}\n" if missing else "")
-                     + (f"unknown `leva_speaker` for: {', '.join(sorted(unknown))}\n" if unknown else "")
+            sys.exit((f"no `ref` set for: {', '.join(sorted(missing))}\n" if missing else "")
+                     + (f"unknown `ref` for: {', '.join(sorted(unknown))}\n" if unknown else "")
                      + f"This checkpoint ships: {', '.join(known)}")
 
     def latents_for(self, name):
@@ -346,7 +447,7 @@ class Leva:
     def generate(self, job, dst, speed):
         import numpy as np
         import soundfile as sf
-        gpt_cond_latent, speaker_embedding = self.latents_for(job.voice["leva_speaker"])
+        gpt_cond_latent, speaker_embedding = self.latents_for(job.voice["ref"])
         out = self.model.inference(text=job.ar, language=self.cfg.get("language", "ar"),
                                    gpt_cond_latent=gpt_cond_latent,
                                    speaker_embedding=speaker_embedding,
@@ -361,10 +462,10 @@ class Leva:
         sf.write(str(dst), np.asarray(wav).reshape(-1), 24000)
 
 
-def open_backend(name, cfg, device=None):
+def open_backend(name, cfg, device=None, refs=None):
     spec = dict(cfg["backends"][name])
     spec["_dialect"] = cfg.get("dialect", "")
-    return {"omnivoice": OmniVoice, "leva": Leva}[name](spec, device)
+    return {"omnivoice": OmniVoice, "leva": Leva}[name](spec, device, refs)
 
 
 # ————————————————————— staging —————————————————————
@@ -378,7 +479,10 @@ def stage(name, cfg, jobs, root=STAGE, device=None, force=False):
     cls = {"omnivoice": OmniVoice, "leva": Leva}[name]
     if hasattr(cls, "precheck"):
         cls.precheck(jobs, cfg)
-    backend = open_backend(name, cfg, device)
+    # leva reads its voices out of its own checkpoint repo; omnivoice borrows
+    # the same clips, so only it needs the pool fetched separately.
+    refs = References(cfg).load() if name != "leva" else None
+    backend = open_backend(name, cfg, device, refs)
     if hasattr(backend, "validate"):
         backend.validate(jobs)
     speed = cfg.get("speed", 1.0)
@@ -560,7 +664,8 @@ def main():
     if args.list_voices:
         if not args.backend:
             sys.exit("--list-voices needs --backend")
-        names = open_backend(args.backend, cfg, args.device).voices()
+        refs = References(cfg).load() if args.backend != "leva" else None
+        names = open_backend(args.backend, cfg, args.device, refs).voices()
         print("\n".join(names) if names else
               f"{args.backend} has no fixed speaker list (it takes a free-text voice description).")
         return

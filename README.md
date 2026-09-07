@@ -100,18 +100,30 @@ than shipping it; that failure is the entire reason this pipeline is a review
 step and not a build step.
 
 `tools/synth.json` assigns a voice per dialogue character, so a conversation
-sounds like two people. The two backends express that differently: `omnivoice`
-takes a voice-design string built from `gender` (its instruct vocabulary is
-closed — gender, age, pitch, whisper and ten non-Arabic accents, no dialects),
-while `leva` conditions on one of the ten reference clips its model repo ships,
-named in `leva_speaker`. `--backend leva --list-voices` prints the clips the
-checkpoint currently holds. Eleven characters share ten clips, so one repeats;
-what the assignment guarantees is that no two characters *within one text*
-share a voice. It also holds the `speed` (0.9 — these are A1 listening
-texts) and the dialect. The voice-cloning fields are deliberately empty: the
-Lingua Libre recordings are single words of about 0.7 s and far too short to
-clone from, and making a named contributor appear to say words they never
-recorded is a decision to take deliberately rather than inherit from a default.
+sounds like two people. Every character's `ref` names a clip from a shared pool
+of reference voices, and both backends clone from it, so a character sounds
+like the same person whichever model reads the line. `--list-voices` prints the
+pool. Eleven characters share ten clips, so one repeats; what the assignment
+guarantees is that no two characters *within one text* share a voice. The file
+also holds `speed` (0.9 — these are A1 listening texts).
+
+**Why cloning rather than voice design.** The first version described each
+character to OmniVoice as `male` or `female` and let it invent a voice. That
+does not hold an accent: the model draws a new speaker on every call, so 27
+lines marked `female` were 27 different women, some of them Egyptian. The
+listening pass caught ج read as an Egyptian [g] on some lines and a Levantine
+[ʒ] on others — one model, one dialogue. Nothing in the instruct vocabulary
+says "Levantine", so there was no way to correct it (see `_dialect_note` in
+`synth.json`). Cloning pins the speaker, and the accent comes with them. It
+also makes the per-character casting real: before, سامر was not one voice
+across his five lines, just five different men.
+
+The pool is borrowed from `leva-tts`'s repo — ten clips, five male and five
+female, fetched without its 5.6 GB checkpoint. That model lost the listening
+comparison, but its reference speakers are Levantine and make good cloning
+targets for OmniVoice, which synthesises far better. Point `references.dir_local`
+at a directory in this repo to use your own instead: 3–10 seconds of connected
+speech per voice, named for the voice.
 
 Clips are keyed by position but validated against the words they were generated
 from, so editing a line in `data.js` retires its audio instead of leaving the

@@ -10,23 +10,50 @@
   "script. The monologues carry no `sp`; `texts` assigns them a narrator.",
   "",
   "Voice fields:",
-  "  gender        male | female — the only attribute both backends understand.",
+  "  ref           WHICH REFERENCE CLIP THIS CHARACTER'S VOICE IS CLONED FROM,",
+  "                by name, from the pool in `references` below. Both backends",
+  "                use it, so a character sounds like the same person whichever",
+  "                model reads the line. `--list-voices` prints the pool.",
+  "  ref_text      Transcript of that clip, if the pool does not carry one.",
+  "                Optional: OmniVoice runs Whisper over the clip when it is",
+  "                missing, which works but repeats per line.",
+  "  gender        male | female. Only a fallback now — it is what builds the",
+  "                OmniVoice voice-design instruct for a character with no",
+  "                `ref`, and see `_why_ref` for why you do not want that.",
   "  instruct      OmniVoice voice-design string, overriding the one built from",
-  "                `gender` + `dialect`. See docs/voice-design.md upstream.",
-  "  ref/ref_text  Switch OmniVoice to voice cloning instead: a 3-10 second",
-  "                reference clip and its transcript. NOTE the Lingua Libre",
-  "                recordings are single words (~0.7 s) and are far too short",
-  "                to clone from — a reference has to be built from connected",
-  "                speech, and cloning a named contributor's voice to make them",
-  "                say words they never recorded is a decision to take",
-  "                deliberately, not a default. Hence: empty here.",
-  "  leva_speaker  Built-in speaker name for the leva-tts backend. Run",
-  "                `synth_lines.py --backend leva --list-voices` to print the",
-  "                names the checkpoint actually ships; guessing them silently",
-  "                falls back to the model's default speaker for every line,",
-  "                which is exactly the one-voice-reads-the-script failure the",
-  "                per-character mapping exists to avoid."
+  "                `gender` + `dialect`. Ignored when `ref` is set."
  ],
+
+ "_why_ref": [
+  "Every character has a `ref` because voice design could not hold an accent.",
+  "",
+  "OmniVoice invents a speaker per call: `instruct: \"female\"` is not a voice,",
+  "it is a filter, and each of the 27 female lines got a different woman — with",
+  "a different regional accent. The first listening pass caught ج read as an",
+  "Egyptian [g] in خمسة/إجي on some lines and a Levantine [ʒ] on others, from",
+  "one model, inside one dialogue. Since the instruct vocabulary contains no",
+  "Arabic dialect (see _dialect_note), there is no attribute that says",
+  "\"Levantine\" and nothing to correct it with.",
+  "",
+  "Cloning fixes the speaker, and the accent comes with the speaker. It also",
+  "makes the per-character mapping real rather than nominal: before this, سامر",
+  "was not one voice across his five lines, he was five different men who",
+  "happened to be male."
+ ],
+
+ "_references_note": [
+  "The reference voices, borrowed from leva-tts's repo — ten clips, five male",
+  "and five female, fetched without its 5.6 GB checkpoint. leva-tts itself was",
+  "rejected on a listening pass, but its reference speakers are Levantine and",
+  "serve fine as cloning targets for OmniVoice, which synthesises far better.",
+  "",
+  "Set `dir_local` to a path in this repo instead to use your own clips: 3-10",
+  "seconds of connected speech each, named for the voice."
+ ],
+ "references": {
+  "repo": "mohammedaly22/leva-tts",
+  "dir": "reference_audios"
+ },
 
  "_dialect_note": [
   "EMPTY ON PURPOSE, and appended to the OmniVoice instruct when set.",
@@ -46,9 +73,10 @@
   "  american, australian, british, canadian, chinese, indian, japanese,",
   "  korean, portuguese, russian accent",
   "",
-  "So the dialect cannot travel through the instruct. It comes from the",
-  "fine-tune and from the Levantine text being read — which is what the",
-  "compare page is for: confirm by ear that it does."
+  "So the dialect cannot travel through the instruct. The hope was that it",
+  "would come from the fine-tune and from the Levantine text being read; the",
+  "listening pass showed it does not, reliably — see `_why_ref`. Voices are",
+  "cloned from reference clips instead, and this field stays empty."
  ],
  "dialect": "",
 
@@ -62,10 +90,9 @@
  "default": { "gender": "female" },
 
  "_voices_note": [
-  "`leva_speaker` names one of leva-tts's reference clips (reference_audios/ in",
-  "the model repo): Amina, Badr, Fadi, Fatma, Haneen, Lamyaa, Mohamed, Mona,",
-  "Rami, Saad — five male, five female. Run `synth_lines.py --backend leva",
-  "--list-voices` to print what the checkpoint currently ships.",
+  "`ref` names a clip from the pool: Amina, Badr, Fadi, Fatma, Haneen, Lamyaa,",
+  "Mohamed, Mona, Rami, Saad — five male, five female. Run `synth_lines.py",
+  "--backend omnivoice --list-voices` to print what the pool currently holds.",
   "",
   "Eleven characters share ten clips, so one repeats. What must never repeat is",
   "two characters inside the SAME text: the cafe has two men talking to each",
@@ -74,17 +101,17 @@
   "(intro) and الراوية (myday), which never appear together."
  ],
  "voices": {
-  "سامر":     { "gender": "male",   "leva_speaker": "Badr" },
-  "ليلى":     { "gender": "female", "leva_speaker": "Amina" },
-  "الغرسون":  { "gender": "male",   "leva_speaker": "Mohamed" },
-  "رنا":      { "gender": "female", "leva_speaker": "Fatma" },
-  "فادي":     { "gender": "male",   "leva_speaker": "Fadi" },
-  "الزبونة":  { "gender": "female", "leva_speaker": "Mona" },
-  "البياع":   { "gender": "male",   "leva_speaker": "Saad" },
-  "ريم":      { "gender": "female", "leva_speaker": "Haneen" },
-  "نور":      { "gender": "female", "leva_speaker": "Lamyaa" },
-  "الراوية":  { "gender": "female", "leva_speaker": "Amina" },
-  "الراوي":   { "gender": "male",   "leva_speaker": "Rami" }
+  "سامر":     { "gender": "male",   "ref": "Badr" },
+  "ليلى":     { "gender": "female", "ref": "Amina" },
+  "الغرسون":  { "gender": "male",   "ref": "Mohamed" },
+  "رنا":      { "gender": "female", "ref": "Fatma" },
+  "فادي":     { "gender": "male",   "ref": "Fadi" },
+  "الزبونة":  { "gender": "female", "ref": "Mona" },
+  "البياع":   { "gender": "male",   "ref": "Saad" },
+  "ريم":      { "gender": "female", "ref": "Haneen" },
+  "نور":      { "gender": "female", "ref": "Lamyaa" },
+  "الراوية":  { "gender": "female", "ref": "Amina" },
+  "الراوي":   { "gender": "male",   "ref": "Rami" }
  },
 
  "_texts": [
