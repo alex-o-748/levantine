@@ -1,0 +1,80 @@
+{
+ "_comment": [
+  "Which voice speaks each line of the dialogues in data.js, and how each TTS",
+  "backend is asked for it. Words are NOT synthesised — they are native Lingua",
+  "Libre recordings or nothing, and tools/build_audio.py still owns them. This",
+  "file covers sentences only, which no single-word recording can ever supply.",
+  "",
+  "A dialogue names its characters in `sp`, so each character gets its own",
+  "voice and a conversation sounds like two people rather than one reading a",
+  "script. The monologues carry no `sp`; `texts` assigns them a narrator.",
+  "",
+  "Voice fields:",
+  "  gender        male | female — the only attribute both backends understand.",
+  "  instruct      OmniVoice voice-design string, overriding the one built from",
+  "                `gender` + `dialect`. See docs/voice-design.md upstream.",
+  "  ref/ref_text  Switch OmniVoice to voice cloning instead: a 3-10 second",
+  "                reference clip and its transcript. NOTE the Lingua Libre",
+  "                recordings are single words (~0.7 s) and are far too short",
+  "                to clone from — a reference has to be built from connected",
+  "                speech, and cloning a named contributor's voice to make them",
+  "                say words they never recorded is a decision to take",
+  "                deliberately, not a default. Hence: empty here.",
+  "  leva_speaker  Built-in speaker name for the leva-tts backend. Run",
+  "                `synth_lines.py --backend leva --list-voices` to print the",
+  "                names the checkpoint actually ships; guessing them silently",
+  "                falls back to the model's default speaker for every line,",
+  "                which is exactly the one-voice-reads-the-script failure the",
+  "                per-character mapping exists to avoid."
+ ],
+
+ "dialect": "Palestinian Lahgtna",
+
+ "_speed": [
+  "Under 1.0 because these are A1 listening texts. Slow enough to follow, not",
+  "so slow that the prosody stops sounding like speech — the old browser-TTS",
+  "path used 0.8 and dragged."
+ ],
+ "speed": 0.9,
+
+ "default": { "gender": "female" },
+
+ "voices": {
+  "سامر":     { "gender": "male",   "leva_speaker": "" },
+  "ليلى":     { "gender": "female", "leva_speaker": "" },
+  "الغرسون":  { "gender": "male",   "leva_speaker": "" },
+  "رنا":      { "gender": "female", "leva_speaker": "" },
+  "فادي":     { "gender": "male",   "leva_speaker": "" },
+  "الزبونة":  { "gender": "female", "leva_speaker": "" },
+  "البياع":   { "gender": "male",   "leva_speaker": "" },
+  "ريم":      { "gender": "female", "leva_speaker": "" },
+  "نور":      { "gender": "female", "leva_speaker": "" },
+  "الراوية":  { "gender": "female", "leva_speaker": "" },
+  "الراوي":   { "gender": "male",   "leva_speaker": "" }
+ },
+
+ "_texts": [
+  "Narrator for the texts that are monologues rather than dialogues. Naming",
+  "them here rather than defaulting keeps the two from sounding like the same",
+  "person telling both stories."
+ ],
+ "texts": {
+  "myday": { "voice": "الراوية" },
+  "trip":  { "voice": "الراوي" }
+ },
+
+ "backends": {
+  "omnivoice": {
+   "model": "oddadmix/lahgtna-omnivoice-v2",
+   "license": "see the model card — the OmniVoice code is Apache-2.0",
+   "license_url": "https://huggingface.co/oddadmix/lahgtna-omnivoice-v2",
+   "num_step": 32
+  },
+  "leva": {
+   "model": "mohammedaly22/leva-tts",
+   "license": "Coqui Public Model License (XTTS-v2 derivative) — non-commercial",
+   "license_url": "https://coqui.ai/cpml",
+   "language": "ar"
+  }
+ }
+}
