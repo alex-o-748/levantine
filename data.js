@@ -2,22 +2,6 @@
 // Transliteration: ḥ ṭ ṣ ḍ ʿ ʾ, long vowels ā ē ī ō ū.
 // `wik` overrides the Wiktionary page title when it differs from `ar`.
 
-// Respellings fed to text-to-speech instead of the written form. Browser
-// voices are trained on Modern Standard Arabic and read some words from
-// their lexicon — e.g. مرحبا gets classical nunation ("marḥaban"). A fully
-// vocalised spelling overrides the lexicon and forces the dialect reading.
-// Add entries here whenever a word sounds wrong when spoken.
-const TTS_FIXES = {
-  "مرحبا": "مَرْحَبَا",
-  "أهلا وسهلا": "أَهْلَا وَسَهْلَا",
-  "يلا": "يَلَّا",
-  "بدي": "بِدِّي",
-  "هلق": "هَلَّأ",
-  "وقت": "وَأْت",
-  "بقدر": "بَأْدِر",
-  "دقيقة": "دَئِيئَة",
-};
-
 // Fold the spelling variants that stop a word matching itself — the same rules
 // tools/build_audio.py applies when it names a clip, so a word here and its
 // recording in audio/manifest.json always meet.

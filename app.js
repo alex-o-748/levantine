@@ -11,11 +11,7 @@ const INTERVALS = [0, 1, 3, 7, 14, 30, 60];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 let progress = load(STORE_KEY, {});          // { [wordId]: {box, due} }
-let settings = load(SETTINGS_KEY, {
-  newPerDay: 8, translit: true, rate: 0.8,
-  urbanQaf: true,   // speak ق as hamza (urban Levantine), matching the transliterations
-  voiceURI: "",     // "" = auto-pick
-});
+let settings = load(SETTINGS_KEY, { newPerDay: 8, translit: true });
 
 function load(key, fallback) {
   try { return { ...fallback, ...JSON.parse(localStorage.getItem(key) || "{}") }; }
@@ -29,123 +25,17 @@ function dueWords() {
   const now = Date.now();
   return VOCAB.filter(w => progress[w.id] && progress[w.id].due <= now);
 }
-// Words with a recording come first. A learner meeting a word for the first
-// time should hear a person say it, not a Modern Standard voice guessing at
-// the dialect — order is the only lever we have, since the recordings cover
-// two thirds of the list and the untouched half of it sits at the front.
+// Words with a recording come first. A recording is the only audio the app
+// has, so a word without one is taught silently — that is worth postponing,
+// but not worth dropping the word over.
 function newWords(limit) {
   const fresh = VOCAB.filter(w => !progress[w.id]);
-  const spoken = fresh.filter(w => clips.has(normAr(w.ar)));
-  return (spoken.length ? spoken.concat(fresh.filter(w => !clips.has(normAr(w.ar)))) : fresh)
-    .slice(0, limit);
+  const spoken = fresh.filter(hasClip);
+  return spoken.concat(fresh.filter(w => !hasClip(w))).slice(0, limit);
 }
 // New words already introduced today still count against the daily budget.
 function introducedToday() {
   return Object.values(progress).filter(p => p.introduced === todayKey()).length;
-}
-
-// ————————————————————— Audio —————————————————————
-
-let voices = [];
-function arabicVoices() {
-  // Never cache an empty list: Chrome/Safari populate voices asynchronously
-  // and answer getVoices() with [] for the first moments after load.
-  const live = ("speechSynthesis" in window) ? speechSynthesis.getVoices() : [];
-  if (live.length) voices = live;
-  return voices.filter(v => /^ar/i.test(v.lang) || /arab|عرب/i.test(v.name));
-}
-function hasArabicVoice() { return arabicVoices().length > 0; }
-// Voices that accepted an utterance but never actually spoke. Chrome lists
-// some voices (typically network-backed ones) that silently produce nothing:
-// no audio, no error event. They're dropped from the rotation once caught.
-const deadVoices = new Set();
-
-// Ordered list to try: the user's pick first, then Levantine regional voices
-// (Edge ships ar-LB/ar-SY/ar-JO neural ones), preferring locally installed
-// voices at each step since network voices are the ones that tend to fail.
-function voiceCandidates() {
-  const ar = arabicVoices().filter(v => !deadVoices.has(v.voiceURI));
-  const chosen = ar.find(v => v.voiceURI === settings.voiceURI);
-  const rank = v =>
-    (/^ar-(LB|SY|JO|PS)/i.test(v.lang) ? 0 : 2) + (v.localService === false ? 1 : 0);
-  const rest = ar.filter(v => v !== chosen).sort((a, b) => rank(a) - rank(b));
-  return chosen ? [chosen, ...rest] : rest;
-}
-function pickArabicVoice() { return voiceCandidates()[0] || null; }
-if ("speechSynthesis" in window) {
-  speechSynthesis.onvoiceschanged = () => {
-    voices = speechSynthesis.getVoices();
-    populateVoicePicker();
-  };
-  // onvoiceschanged is unreliable — it may fire before this script runs, or
-  // not at all. Poll briefly after load so the picker and the hint reflect
-  // what's really installed rather than an empty first answer.
-  let polls = 0;
-  const poll = setInterval(() => {
-    const n = speechSynthesis.getVoices().length;
-    if (n) { voices = speechSynthesis.getVoices(); populateVoicePicker(); }
-    if (n || ++polls > 12) clearInterval(poll);
-  }, 400);
-}
-
-// MSA-trained voices misread some dialect words from their lexicon (e.g.
-// مرحبا → "marḥaban" with classical nunation). Respell those before
-// speaking, and optionally read ق as hamza the way urban Levantine does.
-const AR_LETTER = "\\u0620-\\u064A";
-const TTS_FIX_RULES = Object.entries(TTS_FIXES)
-  .sort((a, b) => b[0].length - a[0].length)
-  .map(([from, to]) =>
-    [new RegExp(`(?<![${AR_LETTER}])${from}(?![${AR_LETTER}])`, "g"), to]);
-
-function ttsText(text) {
-  let out = text;
-  for (const [re, to] of TTS_FIX_RULES) out = out.replace(re, to);
-  if (settings.urbanQaf) out = out.replace(/قا/g, "آ").replace(/ق/g, "أ");
-  return out;
-}
-
-// Speaks `text`, walking down the candidate list if a voice turns out to be
-// silent. Returns a handle whose `onend` fires once speech finishes (or once
-// every candidate has been exhausted), so callers can chain playback.
-function speak(text, rate = settings.rate) {
-  if (!("speechSynthesis" in window)) return null;
-  speechSynthesis.cancel();
-  const handle = { onend: null, onerror: null, started: false };
-  const finish = () => { if (handle.onend) handle.onend(); };
-  let candidates = [];
-
-  const say = i => {
-    const voice = candidates[i] || null; // past the end: let the browser choose
-    const u = new SpeechSynthesisUtterance(ttsText(text));
-    if (voice) { u.voice = voice; u.lang = voice.lang; } else { u.lang = "ar"; }
-    u.rate = rate;
-    let started = false;
-    u.onstart = () => { started = true; handle.started = true; };
-    u.onend = u.onerror = finish;
-    speechSynthesis.speak(u);
-    // Watchdog: if nothing is speaking or queued shortly after, this voice
-    // swallowed the utterance — retire it and try the next one.
-    if (voice) setTimeout(() => {
-      if (started || speechSynthesis.speaking || speechSynthesis.pending) return;
-      deadVoices.add(voice.voiceURI);
-      say(i + 1);
-    }, 1400);
-  };
-
-  const begin = () => { candidates = voiceCandidates(); say(0); };
-  // Speaking before the voice list has loaded picks no voice at all, which on
-  // some browsers is simply silent — so give the list a moment to arrive when
-  // audio is requested immediately after page load.
-  if (!speechSynthesis.getVoices().length) {
-    let waited = 0;
-    const wait = setInterval(() => {
-      if (speechSynthesis.getVoices().length || (waited += 200) >= 2000) {
-        clearInterval(wait);
-        begin();
-      }
-    }, 200);
-  } else begin();
-  return handle;
 }
 
 // ————————————————————— Recordings —————————————————————
@@ -156,6 +46,7 @@ function speak(text, rate = settings.rate) {
 // and hears it immediately — the old live Commons lookup gave neither.
 let clips = new Map();          // normAr(word) -> { file, speaker }
 let credits = [];               // speakers to name, per CC BY-SA
+let manifestFailed = false;
 const clipsReady = fetch("audio/manifest.json")
   .then(r => r.ok ? r.json() : Promise.reject(r.status))
   .then(m => {
@@ -165,20 +56,22 @@ const clipsReady = fetch("audio/manifest.json")
     credits = [...new Set([...clips.values()].map(c => c.speaker))].sort();
     renderCredits();
   })
-  .catch(() => { /* no manifest: every word falls back to speech synthesis */ });
+  .catch(() => { manifestFailed = true; });
 
 function clipFor(word) { return clips.get(normAr(word.ar)); }
+function hasClip(word) { return clips.has(normAr(word.ar)); }
 
 function renderCredits() {
   const el = document.getElementById("credits");
   if (!el || !credits.length) return;
   el.innerHTML =
-    `<h3>Recordings</h3><p class="muted">${clips.size} words are spoken by native ` +
-    `South Levantine speakers rather than a synthetic voice: ` +
+    `<h3>Recordings</h3><p class="muted">Every sound this app makes is a native ` +
+    `South Levantine speaker: ` +
     credits.map(c => `<b>${esc(c)}</b>`).join(", ") +
     `, recorded for <a href="https://lingualibre.org/" target="_blank" rel="noopener">Lingua Libre</a> ` +
     `and used under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" ` +
-    `rel="noopener">CC BY-SA 4.0</a>. Everything else is read by your device's Arabic voice.</p>`;
+    `rel="noopener">CC BY-SA 4.0</a>. ${clips.size} of ${VOCAB.length} words are covered; ` +
+    `the rest are shown without audio rather than read by a synthetic voice.</p>`;
 }
 
 let currentAudio = null;
@@ -204,23 +97,19 @@ function tryPlayRecording(url) {
   });
 }
 
+// A word is played from its recording or not at all. Speech synthesis used to
+// cover the gap and it made the app worse: MSA-trained voices read the dialect
+// with classical endings and a qaf nobody says here, teaching a pronunciation
+// the learner then has to unlearn. Silence is the honest answer.
 async function playWord(word, btn) {
   if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-  if (btn) { btn.classList.add("playing"); btn.classList.remove("native"); }
-  const done = () => btn && btn.classList.remove("playing");
-
-  await clipsReady;
   const clip = clipFor(word);
-  if (clip) {
-    const audio = await tryPlayRecording(clip.file);
-    if (audio) {
-      audio.onended = audio.onerror = done;
-      if (btn) btn.classList.add("native");  // gold ring: a real speaker, not a voice
-      return;
-    }
-  }
-  const u = speak(word.tts || word.ar); // per-word override beats the global fixes
-  if (u) u.onend = done; else done();
+  if (!clip) return;
+  if (btn) btn.classList.add("playing");
+  const done = () => btn && btn.classList.remove("playing");
+  const audio = await tryPlayRecording(clip.file);
+  if (audio) audio.onended = audio.onerror = done;
+  else done();  // 404 or an undecodable file: nothing to fall back to
 }
 
 // ————————————————————— Wiktionary —————————————————————
@@ -288,8 +177,6 @@ document.getElementById("tabs").addEventListener("click", e => {
   document.querySelectorAll(".view").forEach(v =>
     v.classList.toggle("active", v.id === "view-" + btn.dataset.tab));
   if (btn.dataset.tab === "today") renderToday();
-  // Voices may have finished loading since boot — re-read them on arrival.
-  if (btn.dataset.tab === "settings") populateVoicePicker();
 });
 
 // ————————————————————— Today / flashcard session —————————————————————
@@ -348,7 +235,9 @@ function nextCard() {
     <div class="card flashcard" id="flashcard">
       ${isNew ? '<span class="badge">new word</span>' : '<span class="badge review">review</span>'}
       <div class="fc-ar" dir="rtl">${esc(word.ar)}</div>
-      <button class="btn audio" id="fc-audio" title="Listen">🔊</button>
+      ${hasClip(word)
+        ? `<button class="btn audio" id="fc-audio" title="Listen">🔊</button>`
+        : `<div class="no-clip" title="No native recording for this word yet">no recording</div>`}
       <div class="fc-answer hidden" id="fc-answer">
         ${settings.translit ? `<div class="fc-tr">${esc(word.tr)}</div>` : ""}
         <div class="fc-en">${esc(word.en)}</div>
@@ -362,7 +251,8 @@ function nextCard() {
       </div>
     </div>`;
   document.getElementById("btn-quit").onclick = renderToday;
-  document.getElementById("fc-audio").onclick = e => playWord(word, e.currentTarget);
+  const fcAudio = document.getElementById("fc-audio");
+  if (fcAudio) fcAudio.onclick = e => playWord(word, e.currentTarget);
   document.getElementById("fc-wik").onclick = () => openWiktionary(word);
   document.getElementById("fc-reveal").onclick = () => {
     document.getElementById("fc-answer").classList.remove("hidden");
@@ -370,7 +260,7 @@ function nextCard() {
     document.getElementById("fc-reveal").classList.add("hidden");
   };
   // Auto-play the word when the card appears (new words especially).
-  playWord(word, document.getElementById("fc-audio"));
+  if (fcAudio) playWord(word, fcAudio);
   sessionEl.querySelector(".grade-again").onclick = () => grade(word, 0);
   sessionEl.querySelector(".grade-good").onclick = () => grade(word, 1);
   sessionEl.querySelector(".grade-easy").onclick = () => grade(word, 2);
@@ -429,7 +319,9 @@ function renderWords() {
     const p = progress[w.id];
     html += `
       <div class="word-row" data-id="${w.id}">
-        <button class="btn audio small" data-act="audio" title="Listen">🔊</button>
+        ${hasClip(w)
+          ? `<button class="btn audio small" data-act="audio" title="Listen">🔊</button>`
+          : `<span class="btn audio small silent" title="No native recording for this word yet">·</span>`}
         <div class="word-main">
           <span class="w-ar" dir="rtl">${esc(w.ar)}</span>
           ${settings.translit ? `<span class="w-tr">${esc(w.tr)}</span>` : ""}
@@ -468,12 +360,13 @@ function renderTextList() {
     c.onclick = () => openText(TEXTS.find(t => t.id === c.dataset.id)));
 }
 
-let playingAll = false;
-
+// The dialogues were built around per-line playback by speech synthesis. With
+// synthesis gone there is no sentence audio to give — recordings exist for
+// single words only — so a text is now a reading exercise: the Arabic, and the
+// English on demand. Nothing here pretends to be a listening drill.
 function openText(text) {
   textList.classList.add("hidden");
   textView.classList.remove("hidden");
-  playingAll = false;
   textView.innerHTML = `
     <div class="text-head">
       <button class="btn ghost" id="btn-texts-back">← Texts</button>
@@ -481,23 +374,16 @@ function openText(text) {
       <span class="text-level">${text.level}</span>
     </div>
     <div class="text-toolbar">
-      <button class="btn primary" id="btn-playall">▶ Play all</button>
-      <label class="toggle"><input type="checkbox" id="chk-listening" checked> Listening mode (hide text)</label>
       <label class="toggle"><input type="checkbox" id="chk-trans"> Show translation</label>
     </div>
-    <p class="muted listen-hint" id="listen-hint">
-      🎧 Listen first. Tap ▶ on a line to hear it, tap the blurred line to reveal it.
-    </p>
-    <p class="voice-hint warn ${hasArabicVoice() ? "hidden" : ""}" id="no-voice-warning">
-      🔇 No Arabic voice found on this device, so these lines can't be spoken.
-      See Settings → Arabic voice.
+    <p class="muted listen-hint">
+      Read the Arabic first, then tap a line for the English.
     </p>
     <div class="lines" id="lines">
       ${text.lines.map((l, i) => `
         <div class="line" data-i="${i}">
-          <button class="btn audio small line-play" title="Play line">▶</button>
           <div class="line-body">
-            <div class="line-ar veiled" dir="rtl">
+            <div class="line-ar" dir="rtl">
               ${l.sp ? `<span class="line-sp">${esc(l.sp)}:</span> ` : ""}${esc(l.ar)}
             </div>
             <div class="line-en hidden">${esc(l.en)}</div>
@@ -505,147 +391,31 @@ function openText(text) {
         </div>`).join("")}
     </div>`;
 
-  document.getElementById("btn-texts-back").onclick = () => { stopAll(); renderTextList(); };
+  document.getElementById("btn-texts-back").onclick = renderTextList;
 
   const linesEl = document.getElementById("lines");
-  const chkListening = document.getElementById("chk-listening");
   const chkTrans = document.getElementById("chk-trans");
 
-  function applyModes() {
-    linesEl.querySelectorAll(".line-ar").forEach(el =>
-      el.classList.toggle("veiled", chkListening.checked && !el.classList.contains("revealed")));
-    linesEl.querySelectorAll(".line-en").forEach(el =>
-      el.classList.toggle("hidden", !chkTrans.checked));
-    document.getElementById("listen-hint").classList.toggle("hidden", !chkListening.checked);
-  }
-  chkListening.onchange = () => {
-    // Re-veil everything when turning listening mode back on.
-    linesEl.querySelectorAll(".line-ar").forEach(el => el.classList.remove("revealed"));
-    applyModes();
-  };
-  chkTrans.onchange = applyModes;
+  chkTrans.onchange = () => linesEl.querySelectorAll(".line-en").forEach(el =>
+    el.classList.toggle("hidden", !chkTrans.checked));
 
+  // Tapping one line shows just that translation, whatever the toggle says.
   linesEl.addEventListener("click", e => {
     const line = e.target.closest(".line");
-    if (!line) return;
-    const i = +line.dataset.i;
-    if (e.target.closest(".line-play")) {
-      stopAll();
-      highlight(i);
-      speak(text.lines[i].ar);
-    } else {
-      const arEl = line.querySelector(".line-ar");
-      arEl.classList.add("revealed");
-      arEl.classList.remove("veiled");
-    }
+    if (line) line.querySelector(".line-en").classList.remove("hidden");
   });
-
-  function highlight(i) {
-    linesEl.querySelectorAll(".line").forEach((el, j) =>
-      el.classList.toggle("current", j === i));
-  }
-
-  document.getElementById("btn-playall").onclick = async function () {
-    if (playingAll) { stopAll(); this.textContent = "▶ Play all"; return; }
-    playingAll = true;
-    this.textContent = "⏸ Stop";
-    for (let i = 0; i < text.lines.length && playingAll; i++) {
-      highlight(i);
-      await speakAsync(text.lines[i].ar);
-      if (playingAll) await pause(700);
-    }
-    playingAll = false;
-    this.textContent = "▶ Play all";
-    highlight(-1);
-  };
-
-  applyModes();
-}
-
-function speakAsync(text) {
-  return new Promise(resolve => {
-    const u = speak(text);
-    if (!u) return resolve();
-    u.onend = u.onerror = resolve;
-  });
-}
-function pause(ms) { return new Promise(r => setTimeout(r, ms)); }
-function stopAll() {
-  playingAll = false;
-  if ("speechSynthesis" in window) speechSynthesis.cancel();
-  if (currentAudio) { currentAudio.pause(); currentAudio = null; }
 }
 
 // ————————————————————— Settings —————————————————————
 
-function populateVoicePicker() {
-  const sel = document.getElementById("set-voice");
-  const hint = document.getElementById("voice-hint");
-  if (!sel || !("speechSynthesis" in window)) return;
-  const ar = arabicVoices();
-  sel.innerHTML =
-    `<option value="">Auto — prefers Levantine (ar-LB/SY/JO) voices</option>` +
-    ar.map(v => `<option value="${esc(v.voiceURI)}"${v.voiceURI === settings.voiceURI ? " selected" : ""}>` +
-      `${esc(v.name)} (${esc(v.lang)}${v.localService === false ? ", online" : ""})</option>`).join("");
-  if (!hint) return;
-  hint.textContent = ar.length
-    ? `${ar.length} Arabic voice${ar.length === 1 ? "" : "s"} available. Hit Test — if you hear ` +
-      `nothing, pick another one; “online” voices need a working connection.`
-    : "No Arabic voice found on this device — hit Test to confirm. Word audio still works " +
-      "(recordings ship with the app), but sentences need a voice: install an Arabic " +
-      "language pack in your system settings, or open this page in Microsoft Edge, which " +
-      "ships Levantine voices of its own.";
-  hint.classList.toggle("warn", !ar.length);
-}
-
-// Speech is fire-and-forget, so the only honest way to answer "is audio
-// working?" is to speak and watch whether it actually started.
-function testVoice() {
-  const hint = document.getElementById("voice-hint");
-  const handle = speak("مرحبا، كيفك؟");
-  if (!hint) return;
-  hint.textContent = "Testing…";
-  hint.classList.remove("warn");
-  setTimeout(() => {
-    if (handle && handle.started) {
-      const v = pickArabicVoice();
-      hint.textContent = "✅ Speech is working" + (v ? ` — voice: ${v.name} (${v.lang}).` : ".");
-      hint.classList.remove("warn");
-    } else {
-      hint.textContent = "🔇 Nothing was spoken. This device has no working Arabic voice, so " +
-        "sentence audio won't play. Word audio still works — those recordings ship with the app. " +
-        "To get speech: install an Arabic language pack in your system settings, or open this " +
-        "page in Microsoft Edge (it ships ar-LB/ar-SY/ar-JO voices).";
-      hint.classList.add("warn");
-    }
-  }, 2600);
-}
-
 function initSettings() {
   const perDay = document.getElementById("set-newperday");
   const translit = document.getElementById("set-translit");
-  const rate = document.getElementById("set-rate");
-  const rateLabel = document.getElementById("rate-label");
-  const voiceSel = document.getElementById("set-voice");
-  const urbanQaf = document.getElementById("set-urbanqaf");
   perDay.value = String(settings.newPerDay);
   translit.checked = settings.translit;
-  rate.value = String(settings.rate);
-  rateLabel.textContent = settings.rate + "×";
-  urbanQaf.checked = settings.urbanQaf;
-  populateVoicePicker();
 
   perDay.onchange = () => { settings.newPerDay = +perDay.value; save(SETTINGS_KEY, settings); renderToday(); };
   translit.onchange = () => { settings.translit = translit.checked; save(SETTINGS_KEY, settings); renderWords(); };
-  rate.oninput = () => { settings.rate = +rate.value; rateLabel.textContent = rate.value + "×"; save(SETTINGS_KEY, settings); };
-  voiceSel.onchange = () => {
-    settings.voiceURI = voiceSel.value;
-    deadVoices.delete(voiceSel.value); // give an explicitly chosen voice a fresh chance
-    save(SETTINGS_KEY, settings);
-    speak("مرحبا"); // preview the chosen voice
-  };
-  document.getElementById("btn-testvoice").onclick = testVoice;
-  urbanQaf.onchange = () => { settings.urbanQaf = urbanQaf.checked; save(SETTINGS_KEY, settings); };
 
   document.getElementById("btn-reset").onclick = () => {
     if (confirm("Reset all learning progress? This cannot be undone.")) {
@@ -659,7 +429,16 @@ function initSettings() {
 
 // ————————————————————— Boot —————————————————————
 
-initWordsTab();
-renderTextList();
-initSettings();
-renderToday();
+// Every view asks which words have a recording, so wait for the manifest
+// rather than render a silent app and correct it a moment later.
+clipsReady.then(() => {
+  if (manifestFailed) {
+    document.getElementById("main").insertAdjacentHTML("afterbegin",
+      `<p class="voice-hint warn">Word recordings failed to load, so the app has no audio. ` +
+      `Check your connection and reload.</p>`);
+  }
+  initWordsTab();
+  renderTextList();
+  initSettings();
+  renderToday();
+});

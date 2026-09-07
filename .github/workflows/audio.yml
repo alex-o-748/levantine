@@ -12,6 +12,10 @@ on:
         description: Commons category to fetch
         default: Category:Lingua Libre pronunciation by AdrianAbdulBaha
         required: true
+      iso:
+        description: Lingua Libre language codes to keep ("all" for every language)
+        default: ajp,apc
+        required: true
       download:
         description: Download the media (off = inventory only, no media)
         type: boolean
@@ -34,15 +38,22 @@ jobs:
         with:
           python-version: "3.12"
 
-      # build_audio.py falls back to a pip-installed ffmpeg, but the runner's
-      # own build is faster and already present.
-      - name: Check ffmpeg
-        run: ffmpeg -version | head -1
+      # Runner images no longer ship ffmpeg, and the check that was meant to
+      # catch that could not fail: `ffmpeg -version | head -1` exits with head's
+      # status, so a missing binary passed and only build_audio.py noticed —
+      # after a 37-minute download, in a step marked continue-on-error. Install
+      # it, then assert it is really there.
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -1
 
       # The media is gitignored and the runner is ephemeral, so without a cache
       # every run re-downloads several hundred megabytes from Wikimedia.
       - name: Restore corpus cache
-        uses: actions/cache@v4
+        id: corpus-cache
+        uses: actions/cache/restore@v4
         with:
           path: corpus/commons
           key: commons-${{ hashFiles('tools/corpus-inventory.json') }}
@@ -51,24 +62,62 @@ jobs:
       # Inputs travel via env, never interpolated into the script: GitHub
       # expands ${{ }} before the shell parses the line, so a quote in an input
       # would otherwise run as a command.
+      # A cache from before downloads were named off the Commons title holds
+      # files called "…wav?utm_source=commons.wikimedia.org&…". The suffix is
+      # not .wav, so the indexer skips them and the fetcher, which looks for the
+      # corrected name, re-downloads them anyway. Drop them.
+      - name: Drop downloads named from the old URL form
+        run: find corpus -type f -name '*.wav?*' -delete -print | wc -l
+
       - name: Fetch from Commons
         env:
           CATEGORY: ${{ inputs.category }}
           LIMIT: ${{ inputs.limit }}
+          ISO: ${{ inputs.iso }}
         run: |
           python3 tools/fetch-commons-audio.py \
             --category "$CATEGORY" \
             --inventory tools/corpus-inventory.json \
             --limit "$LIMIT" \
+            --iso "$ISO" \
             ${{ inputs.download && '--download' || '' }}
 
+      # A run once reported files downloaded while the next step found an empty
+      # corpus. Unexplained, so the tree is printed rather than trusted.
+      - name: What actually landed on disk
+        if: ${{ inputs.download }}
+        run: |
+          echo "corpus tree:"
+          find corpus -maxdepth 2 -type d -print
+          echo "audio files: $(find corpus -type f \( -name '*.wav' -o -name '*.ogg' \) | wc -l)"
+          echo "leftover .part: $(find corpus -type f -name '*.part' | wc -l)"
+          find corpus -type f | head -5
+
+      # Informational: a throttled run can legitimately come back with nothing,
+      # and that should not mask the download diagnostics above.
       - name: What the corpus now holds
         if: ${{ inputs.download }}
+        continue-on-error: true
         run: python3 tools/build_audio.py --report
 
+      # This one must not be forgiving. The clips are the whole point of the
+      # run, and the app has no synthesised fallback behind them: a build that
+      # fails quietly ships a silent word list and a green tick.
       - name: Build the clips the app ships
         if: ${{ inputs.download }}
         run: python3 tools/build_audio.py
+
+      # Saved whatever the build's verdict — actions/cache only saves on success,
+      # and a selection bug threw away a 37-minute download once already. The
+      # download is the expensive half of this job; a later step failing is no
+      # reason to pay for it twice. The cache is visible to this branch and the
+      # default branch only, so a sibling branch still starts cold.
+      - name: Save corpus cache
+        if: ${{ always() && inputs.download }}
+        uses: actions/cache/save@v4
+        with:
+          path: corpus/commons
+          key: commons-${{ github.run_id }}
 
       - name: Commit
         env:

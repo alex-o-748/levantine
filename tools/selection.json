@@ -4,15 +4,19 @@
   "consistent voice while the course as a whole stays multi-speaker — learners",
   "generalise better from varied talkers than from one.",
   "",
-  "\"words\": \"*\" takes everything that speaker recorded. Name words explicitly",
-  "to curate a subset. Run `python3 tools/build_audio.py --report` to see who",
-  "recorded what."
+  "Speaker names are as Commons writes them: the person first, the account that",
+  "uploaded the recording in brackets. The dataset zips reverse the two; either",
+  "spelling resolves.",
+  "",
+  "\"words\": \"*\" takes everything that speaker recorded; \"vocab\" takes every",
+  "word data.js teaches that anyone recorded. Name words explicitly to curate a",
+  "subset. Run `python3 tools/build_audio.py --report` to see who recorded what."
  ],
  "lessons": [
   {
    "id": "people",
    "title": "People, pronouns & politeness",
-   "speaker": "AdrianAbdulBaha (MahmoudM)",
+   "speaker": "MahmoudM (AdrianAbdulBaha)",
    "words": "*",
    "exclude": [
     "صبابا"
@@ -21,31 +25,32 @@
   {
    "id": "food",
    "title": "Food & drink",
-   "speaker": "AdrianAbdulBaha (IbrahimZ)",
+   "speaker": "IbrahimZ (AdrianAbdulBaha)",
    "words": "*"
   },
   {
    "id": "time",
    "title": "Time & when things happen",
-   "speaker": "AdrianAbdulBaha (AseelF)",
+   "speaker": "AseelF (AdrianAbdulBaha)",
    "words": "*"
   },
   {
    "id": "extra",
    "title": "Existing vocabulary",
    "_note": [
-    "Not a lesson — recordings for words the app already taught before the",
+    "Not a lesson — recordings for the vocabulary the app taught before the",
     "corpus arrived. \"*\" pools every speaker: these words are scattered",
     "across contributors, and for a word the learner meets inside an older",
-    "category, having a native recording matters more than matching a voice."
+    "category, having a native recording matters more than matching a voice.",
+    "",
+    "\"vocab\" rather than a hand-copied list because the app no longer speaks",
+    "anything it has no recording for. A word that is in the curriculum and in",
+    "the corpus but not in this file is simply silent, and a list maintained by",
+    "hand is exactly how مرحبا stayed silent while its recording sat in the",
+    "category all along."
    ],
    "speaker": "*",
-   "words": [
-    "عم", "إجا", "قال", "شوي", "خلص", "أكيد", "لأنه", "ماما", "أخت", "ابن",
-    "جار", "جوز", "سكر", "ملح", "بيت", "شغل", "مدرسة", "جامعة", "سيارة",
-    "شارع", "محل", "سوق", "مصاري", "باص", "تلفون", "حامي", "تعبان", "جوعان",
-    "عطشان", "زعلان"
-   ]
+   "words": "vocab"
   }
  ]
 }

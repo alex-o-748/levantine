@@ -20,6 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CORPUS, OUT, SELECT = ROOT / "corpus", ROOT / "audio", ROOT / "tools" / "selection.json"
+DATA = ROOT / "data.js"
 AUDIO_EXT = {".ogg", ".wav", ".flac", ".mp3", ".opus"}
 
 # Lingua Libre recordings are CC BY-SA 4.0. Shipping them obliges us to credit
@@ -47,6 +48,22 @@ def normalise(s):
     s = s.replace("ى", "ي").replace("ؤ", "و").replace("ئ", "ي")
     s = re.sub(r"[؟!،.,?]", "", s)
     return re.sub(r"\s+", " ", s).strip()
+
+
+# The words the app teaches outside the corpus-derived lessons — the curated
+# vocabulary in data.js. Read straight out of the source rather than duplicated
+# into selection.json: the app now has no speech synthesis, so a word the
+# curriculum teaches and the corpus happens to hold must never be missed
+# because nobody remembered to copy it across. Only the VOCAB block is scanned;
+# the lessons below it are already selected by speaker, and the dialogues after
+# it are sentences no single-word recording could cover.
+def app_vocabulary(path=DATA):
+    src = path.read_text(encoding="utf-8")
+    try:
+        block = src[src.index("const VOCAB"):src.index("const TEXTS")]
+    except ValueError:
+        sys.exit(f"{path}: could not find the VOCAB block — has data.js been restructured?")
+    return re.findall(r'ar:\s*"([^"]+)"', block)
 
 
 # Rough Arabic→ASCII purely for readable filenames — never shown to a learner,
@@ -192,7 +209,7 @@ def index_corpus(corpus=CORPUS):
 # so a corpus assembled either way indexes the same.
 # The word is what follows the LAST hyphen, not the first: contributor names
 # carry hyphens ("Jean-Pierre") far more often than recorded Arabic words do.
-LL_NAME = re.compile(r"^LL-Q\d+\s*\([^)]*\)-(?P<speaker>.+)-(?P<word>[^-]+)$")
+LL_NAME = re.compile(r"^LL-Q\d+[\s_]*\([^)]*\)[-_](?P<speaker>.+)-(?P<word>[^-]+)$")
 
 def read_name(stem, parent):
     m = LL_NAME.match(stem)
@@ -204,6 +221,26 @@ def by_speaker(recs):
     for r in recs:
         out.setdefault(r.speaker, {}).setdefault(r.key, []).append(r)
     return out
+
+
+# "MahmoudM (AdrianAbdulBaha)" and "AdrianAbdulBaha (MahmoudM)" are one person:
+# a Commons filename names the speaker first and the account that uploaded the
+# recording second, and the Lingua Libre dataset zips name the directory the
+# other way round. A selection written against one corpus would otherwise find
+# nobody in the other, which is how a whole run came back with no clips.
+def speaker_key(name):
+    m = re.fullmatch(r"(.+?)\s*\((.+)\)", name.strip())
+    return frozenset((m.group(1).strip(), m.group(2).strip())) if m else name.strip()
+
+
+def find_speaker(spk, name):
+    if name in spk:
+        return spk[name]
+    key = speaker_key(name)
+    for other, words in spk.items():
+        if speaker_key(other) == key:
+            return words
+    return None
 
 
 # ————————————————————— build —————————————————————
@@ -221,7 +258,7 @@ def build(recs, spec, out=OUT, force=False):
     ffmpeg = find_ffmpeg()
     spk = by_speaker(recs)
     out.mkdir(parents=True, exist_ok=True)
-    lessons, seen, skipped = [], set(), []
+    lessons, seen, skipped, taken = [], set(), [], set()
 
     for lesson in spec["lessons"]:
         speaker = lesson["speaker"]
@@ -234,12 +271,22 @@ def build(recs, spec, out=OUT, force=False):
             for words in spk.values():
                 for key, takes in words.items():
                     available.setdefault(key, []).extend(takes)
-        elif speaker not in spk:
-            sys.exit(f"unknown speaker {speaker!r} — run --report to list them")
         else:
-            available = spk[speaker]
+            available = find_speaker(spk, speaker)
+            if available is None:
+                sys.exit(f"unknown speaker {speaker!r} in lesson {lesson['id']!r}. "
+                         f"The corpus holds: " + ", ".join(sorted(spk)))
         wanted = lesson.get("words", "*")
-        keys = sorted(available) if wanted == "*" else [normalise(w) for w in wanted]
+        if wanted == "*":
+            keys = sorted(available)
+        elif wanted == "vocab":
+            # Everything the app teaches that anyone recorded. Words an earlier
+            # lesson already claimed are left to it, so no word ships twice
+            # under two speakers with only one of them reachable.
+            keys = [k for k in dict.fromkeys(normalise(w) for w in app_vocabulary())
+                    if k not in taken]
+        else:
+            keys = [normalise(w) for w in wanted]
         # Where a listening pass rejects a recording — misread word, botched
         # take, a filename the audio doesn't match — name it here rather than
         # narrowing `words`, so the reason stays attached to the decision.
@@ -274,6 +321,7 @@ def build(recs, spec, out=OUT, force=False):
             clips.append({"ar": take.word, "file": f"audio/{name}.mp3", "dur": dur,
                           "speaker": take.speaker})
             seen.add(f"{name}.mp3")
+            taken.add(key)
             print(f"  {lesson['id']:>10}  {take.word:<20} {dst.name}")
 
         voices = sorted({c["speaker"] for c in clips})

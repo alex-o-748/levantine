@@ -1,13 +1,12 @@
 {
- "generated": "2026-09-06T14:47:55+00:00",
+ "generated": "2026-09-06T22:04:36+00:00",
  "source": {
   "corpus": "https://lingualibre.org/",
   "license": "CC BY-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
   "archives": [
    {
-    "archive": "ajp.zip",
-    "sha256": "7a6f2be2ff164164f8e9aa37316fc5223d21a77e7dbd089809c7013ecb0a11c3"
+    "directory": "commons"
    }
   ]
  },
@@ -15,1276 +14,1420 @@
   {
    "id": "people",
    "title": "People, pronouns & politeness",
-   "speaker": "AdrianAbdulBaha (MahmoudM)",
+   "speaker": "MahmoudM (AdrianAbdulBaha)",
    "clips": [
     {
      "ar": "اجنبي",
-     "file": "audio/ajnby-ae67b3.mp3",
+     "file": "audio/ajnby-03542c.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "احنا",
-     "file": "audio/ahna-8eee29.mp3",
+     "file": "audio/ahna-2f61e9.mp3",
      "dur": 0.65,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "آسف",
-     "file": "audio/asf-a3db5e.mp3",
+     "file": "audio/asf-7c71b1.mp3",
      "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "اسم",
-     "file": "audio/asm-ce43c5.mp3",
+     "file": "audio/asm-0455a0.mp3",
      "dur": 0.65,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "اشخاص",
-     "file": "audio/ashkhas-554d5a.mp3",
+     "file": "audio/ashkhas-631879.mp3",
      "dur": 0.96,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "اصحاب",
-     "file": "audio/ashab-1978e2.mp3",
+     "file": "audio/ashab-c5c20b.mp3",
      "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "اصدقاء",
-     "file": "audio/asdqa2-735f87.mp3",
+     "file": "audio/asdqa2-10215f.mp3",
      "dur": 0.94,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "انا",
-     "file": "audio/ana-b95f52.mp3",
+     "file": "audio/ana-22243a.mp3",
      "dur": 0.53,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "انتا",
-     "file": "audio/anta-d83742.mp3",
+     "file": "audio/anta-1b5aa0.mp3",
      "dur": 0.53,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "انتو",
-     "file": "audio/antw-32b84e.mp3",
+     "file": "audio/antw-a027cd.mp3",
      "dur": 0.58,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "انتي",
-     "file": "audio/anty-5695b8.mp3",
-     "dur": 0.55,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "file": "audio/anty-c430da.mp3",
+     "dur": 0.58,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "اهل",
-     "file": "audio/ahl-5f7601.mp3",
+     "file": "audio/ahl-a35d7f.mp3",
      "dur": 0.62,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "بدون",
-     "file": "audio/bdwn-f8e5c8.mp3",
+     "file": "audio/bdwn-7c892f.mp3",
      "dur": 0.6,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "برضه",
-     "file": "audio/brdh-ddfc06.mp3",
+     "file": "audio/brdh-a961dd.mp3",
      "dur": 0.58,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
-     "ar": "بِسّ",
-     "file": "audio/bs-900556.mp3",
-     "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "ar": "بَسّ",
+     "file": "audio/bs-4ab3c0.mp3",
+     "dur": 0.7,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "بعض",
-     "file": "audio/b3d-78c434.mp3",
+     "file": "audio/b3d-5bddfa.mp3",
      "dur": 0.58,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "بعيد",
-     "file": "audio/b3yd-8beec9.mp3",
+     "file": "audio/b3yd-2018d1.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "بلا",
-     "file": "audio/bla-a313b9.mp3",
+     "file": "audio/bla-d230b4.mp3",
      "dur": 0.62,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "بلاش",
-     "file": "audio/blash-6bb000.mp3",
+     "file": "audio/blash-df6d13.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "بما انّه",
-     "file": "audio/bma-anh-36ca24.mp3",
+     "file": "audio/bma-anh-a24238.mp3",
      "dur": 1.03,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "بنات",
-     "file": "audio/bnat-93e320.mp3",
+     "file": "audio/bnat-75e609.mp3",
      "dur": 0.96,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "بنت",
-     "file": "audio/bnt-0d13aa.mp3",
+     "file": "audio/bnt-05117e.mp3",
      "dur": 0.7,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "بني ادم",
-     "file": "audio/bny-adm-421bb5.mp3",
+     "file": "audio/bny-adm-15d75d.mp3",
      "dur": 1.08,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "بين",
-     "file": "audio/byn-530adf.mp3",
+     "file": "audio/byn-637270.mp3",
      "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "بينما",
-     "file": "audio/bynma-82c8cf.mp3",
-     "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "file": "audio/bynma-be6502.mp3",
+     "dur": 0.77,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "تحت",
-     "file": "audio/tht-c33f7b.mp3",
+     "file": "audio/tht-fe7a56.mp3",
      "dur": 0.65,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "تمام",
-     "file": "audio/tmam-303ac9.mp3",
+     "file": "audio/tmam-6c2871.mp3",
      "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "حبيب",
-     "file": "audio/hbyb-1dad26.mp3",
+     "file": "audio/hbyb-cc6467.mp3",
      "dur": 0.7,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "حتّى",
-     "file": "audio/hty-44edf9.mp3",
-     "dur": 0.65,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "file": "audio/hty-f73a08.mp3",
+     "dur": 0.67,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "حلو",
-     "file": "audio/hlw-a2e95a.mp3",
+     "file": "audio/hlw-712359.mp3",
      "dur": 0.55,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "حياة",
-     "file": "audio/hyaa-b03712.mp3",
+     "file": "audio/hyaa-237a6e.mp3",
      "dur": 0.7,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "دغري",
-     "file": "audio/dghry-76073b.mp3",
+     "file": "audio/dghry-2df2a1.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "زلمة",
-     "file": "audio/zlma-b0ea43.mp3",
+     "file": "audio/zlma-096167.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "شاطر",
-     "file": "audio/shatr-203db6.mp3",
+     "file": "audio/shatr-4e0a6a.mp3",
      "dur": 0.84,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "شبّ",
-     "file": "audio/shb-f81b56.mp3",
+     "file": "audio/shb-010766.mp3",
      "dur": 0.46,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "شباب",
-     "file": "audio/shbab-e1b093.mp3",
+     "file": "audio/shbab-20099c.mp3",
      "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "شخص",
-     "file": "audio/shkhs-ac8809.mp3",
-     "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "file": "audio/shkhs-f4cb59.mp3",
+     "dur": 0.82,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "شكرًا",
-     "file": "audio/shkra-68a6ab.mp3",
+     "file": "audio/shkra-7ec33e.mp3",
      "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "شمال",
-     "file": "audio/shmal-25f53a.mp3",
+     "file": "audio/shmal-29f45a.mp3",
      "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "صاحب",
-     "file": "audio/sahb-92b8e3.mp3",
-     "dur": 0.7,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "file": "audio/sahb-4700e3.mp3",
+     "dur": 0.72,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "صبية",
-     "file": "audio/sbya-de0a7a.mp3",
+     "file": "audio/sbya-2bc1af.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "صديق",
-     "file": "audio/sdyq-f42022.mp3",
+     "file": "audio/sdyq-e90c31.mp3",
      "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "طالما",
-     "file": "audio/talma-4e98ab.mp3",
+     "file": "audio/talma-4c10bb.mp3",
      "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "طيّب",
-     "file": "audio/tyb-bc5db3.mp3",
+     "file": "audio/tyb-ed7918.mp3",
      "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "عادي",
-     "file": "audio/3ady-0fb4e7.mp3",
-     "dur": 0.89,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "file": "audio/3ady-3cf8c8.mp3",
+     "dur": 0.91,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "عُرس",
-     "file": "audio/3rs-21349c.mp3",
-     "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "file": "audio/3rs-240f24.mp3",
+     "dur": 0.74,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "عَروس",
-     "file": "audio/3rws-9cc337.mp3",
-     "dur": 0.94,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "file": "audio/3rws-535fa3.mp3",
+     "dur": 0.91,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "عَريس",
-     "file": "audio/3rys-b10501.mp3",
+     "file": "audio/3rys-7fcae8.mp3",
      "dur": 0.84,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "عزيز",
-     "file": "audio/3zyz-5d40c4.mp3",
+     "file": "audio/3zyz-e5f9aa.mp3",
      "dur": 0.86,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "عشان",
-     "file": "audio/3shan-f15517.mp3",
+     "file": "audio/3shan-1da139.mp3",
      "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "عفوًا",
-     "file": "audio/3fwa-a265f1.mp3",
+     "file": "audio/3fwa-a5a3db.mp3",
      "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "علاقة",
-     "file": "audio/3laqa-7c28bd.mp3",
+     "file": "audio/3laqa-15a35e.mp3",
      "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "عمر",
-     "file": "audio/3mr-2ced6f.mp3",
+     "file": "audio/3mr-fd8cd1.mp3",
      "dur": 0.6,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "عيلة",
-     "file": "audio/3yla-131941.mp3",
+     "file": "audio/3yla-f24a1f.mp3",
      "dur": 0.65,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "غريب",
-     "file": "audio/ghryb-914890.mp3",
+     "file": "audio/ghryb-64702a.mp3",
      "dur": 0.65,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "غير",
-     "file": "audio/ghyr-a55bee.mp3",
-     "dur": 0.6,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "file": "audio/ghyr-4ef8fc.mp3",
+     "dur": 0.62,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "فوق",
-     "file": "audio/fwq-6cc623.mp3",
+     "file": "audio/fwq-a6652d.mp3",
      "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "في",
-     "file": "audio/fy-050269.mp3",
+     "file": "audio/fy-688ee1.mp3",
      "dur": 0.46,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "فيه",
-     "file": "audio/fyh-e39a7d.mp3",
+     "file": "audio/fyh-a755a9.mp3",
      "dur": 0.46,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "قدّام",
-     "file": "audio/qdam-d18fc6.mp3",
+     "file": "audio/qdam-263099.mp3",
      "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "قريب",
-     "file": "audio/qryb-0f579c.mp3",
-     "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "file": "audio/qryb-eb64ac.mp3",
+     "dur": 0.7,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "كمان",
-     "file": "audio/kman-88d4a0.mp3",
+     "file": "audio/kman-f8ddb9.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "كويّس",
-     "file": "audio/kwys-423a30.mp3",
+     "file": "audio/kwys-4ec84e.mp3",
      "dur": 0.89,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "لحدّ",
-     "file": "audio/lhd-861903.mp3",
+     "file": "audio/lhd-217f1c.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "لطيف",
-     "file": "audio/ltyf-a388f3.mp3",
+     "file": "audio/ltyf-6c0ef4.mp3",
      "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "للأسف",
-     "file": "audio/llasf-eeaca0.mp3",
+     "file": "audio/llasf-124c1e.mp3",
      "dur": 0.86,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "لو سمحت",
-     "file": "audio/lw-smht-5840a3.mp3",
+     "file": "audio/lw-smht-fe0092.mp3",
      "dur": 0.94,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "ما دام",
-     "file": "audio/ma-dam-323690.mp3",
+     "file": "audio/ma-dam-dccea8.mp3",
      "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "متأسّف",
-     "file": "audio/mtasf-c3627b.mp3",
-     "dur": 1.1,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "file": "audio/mtasf-ce8c62.mp3",
+     "dur": 1.08,
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "مرّة",
-     "file": "audio/mra-32d975.mp3",
+     "file": "audio/mra-09b5b8.mp3",
      "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "مع",
-     "file": "audio/m3-4931c3.mp3",
+     "file": "audio/m3-edd764.mp3",
      "dur": 0.48,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "معليش",
-     "file": "audio/m3lysh-8903de.mp3",
+     "file": "audio/m3lysh-cad2b7.mp3",
      "dur": 0.98,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "منشان",
-     "file": "audio/mnshan-bf26f9.mp3",
+     "file": "audio/mnshan-28f901.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "منيح",
-     "file": "audio/mnyh-10b9df.mp3",
+     "file": "audio/mnyh-8669e9.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "همه",
-     "file": "audio/hmh-0586c6.mp3",
+     "file": "audio/hmh-3e2ffc.mp3",
      "dur": 0.48,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "هناك",
-     "file": "audio/hnak-5c5ffd.mp3",
+     "file": "audio/hnak-f6914c.mp3",
      "dur": 0.7,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "هو",
-     "file": "audio/hw-35808a.mp3",
+     "file": "audio/hw-fdbab8.mp3",
      "dur": 0.55,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "هون",
-     "file": "audio/hwn-a7bf8a.mp3",
+     "file": "audio/hwn-3618c0.mp3",
      "dur": 0.58,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "هوية",
-     "file": "audio/hwya-985be1.mp3",
+     "file": "audio/hwya-9fb1ca.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "هي",
-     "file": "audio/hy-7abd22.mp3",
+     "file": "audio/hy-33f022.mp3",
      "dur": 0.58,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "ورا",
-     "file": "audio/wra-f135f7.mp3",
+     "file": "audio/wra-212c77.mp3",
      "dur": 0.53,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "ولاد",
-     "file": "audio/wlad-1b9924.mp3",
+     "file": "audio/wlad-b30401.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "ولد",
-     "file": "audio/wld-9c45dd.mp3",
+     "file": "audio/wld-f00f02.mp3",
      "dur": 0.6,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     },
     {
      "ar": "يمين",
-     "file": "audio/ymyn-9b7f49.mp3",
+     "file": "audio/ymyn-ec73ea.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (MahmoudM)"
+     "speaker": "MahmoudM (AdrianAbdulBaha)"
     }
    ]
   },
   {
    "id": "food",
    "title": "Food & drink",
-   "speaker": "AdrianAbdulBaha (IbrahimZ)",
+   "speaker": "IbrahimZ (AdrianAbdulBaha)",
    "clips": [
     {
      "ar": "اكل",
-     "file": "audio/akl-be0157.mp3",
+     "file": "audio/akl-11f079.mp3",
      "dur": 1.03,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "باتنجان",
-     "file": "audio/batnjan-f1dff1.mp3",
+     "file": "audio/batnjan-0c2ea6.mp3",
      "dur": 1.06,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "برقوق",
-     "file": "audio/brqwq-816b50.mp3",
+     "file": "audio/brqwq-2e2fcb.mp3",
      "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "بصل",
-     "file": "audio/bsl-7338a7.mp3",
-     "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "file": "audio/bsl-8f1e30.mp3",
+     "dur": 0.79,
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "بطّيخ",
-     "file": "audio/btykh-014a7f.mp3",
-     "dur": 1.03,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "file": "audio/btykh-9f2fc9.mp3",
+     "dur": 1.01,
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "بندورة",
-     "file": "audio/bndwra-dc8618.mp3",
+     "file": "audio/bndwra-3e94f1.mp3",
      "dur": 0.94,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "بهار",
-     "file": "audio/bhar-33f401.mp3",
+     "file": "audio/bhar-52cec9.mp3",
      "dur": 0.82,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "تفّاح",
-     "file": "audio/tfah-43ba52.mp3",
+     "file": "audio/tfah-996182.mp3",
      "dur": 1.15,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "تمر",
-     "file": "audio/tmr-6058d9.mp3",
+     "file": "audio/tmr-34208c.mp3",
      "dur": 0.6,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "جبنة",
-     "file": "audio/jbna-8ddb1a.mp3",
+     "file": "audio/jbna-cdfecf.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "جزر",
-     "file": "audio/jzr-091cbf.mp3",
+     "file": "audio/jzr-e6149b.mp3",
      "dur": 0.6,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "حليب",
-     "file": "audio/hlyb-7c6703.mp3",
+     "file": "audio/hlyb-d12a4b.mp3",
      "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "خُبز",
-     "file": "audio/khbz-329117.mp3",
+     "file": "audio/khbz-6e73ad.mp3",
      "dur": 0.89,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "خسّ",
-     "file": "audio/khs-20510f.mp3",
+     "file": "audio/khs-1bfadb.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "خضار",
-     "file": "audio/khdar-8c46da.mp3",
+     "file": "audio/khdar-52f781.mp3",
      "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "خوخ",
-     "file": "audio/khwkh-07df12.mp3",
+     "file": "audio/khwkh-c08771.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "خيار",
-     "file": "audio/khyar-00bd56.mp3",
+     "file": "audio/khyar-6f69ba.mp3",
      "dur": 1.01,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "زبدة",
-     "file": "audio/zbda-1a581c.mp3",
+     "file": "audio/zbda-0f08af.mp3",
      "dur": 0.82,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "زنجبيل",
-     "file": "audio/znjbyl-3a5b60.mp3",
+     "file": "audio/znjbyl-b8eb08.mp3",
      "dur": 1.27,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "زيت",
-     "file": "audio/zyt-9b15eb.mp3",
+     "file": "audio/zyt-19a13c.mp3",
      "dur": 0.84,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "زيتون",
-     "file": "audio/zytwn-1d1042.mp3",
+     "file": "audio/zytwn-eb3c55.mp3",
      "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "سكّينة",
-     "file": "audio/skyna-3dde12.mp3",
+     "file": "audio/skyna-d8ed14.mp3",
      "dur": 1.25,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "شاي",
-     "file": "audio/shay-3e533b.mp3",
+     "file": "audio/shay-42f959.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "شوربة",
-     "file": "audio/shwrba-aee53e.mp3",
+     "file": "audio/shwrba-f7a6a6.mp3",
      "dur": 1.18,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "شوكة",
-     "file": "audio/shwka-781a58.mp3",
+     "file": "audio/shwka-ed804a.mp3",
      "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "صحن",
-     "file": "audio/shn-216324.mp3",
+     "file": "audio/shn-537a6c.mp3",
      "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "طعم",
-     "file": "audio/t3m-debb8c.mp3",
+     "file": "audio/t3m-eb3d84.mp3",
      "dur": 0.7,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "عسل",
-     "file": "audio/3sl-51a8e0.mp3",
+     "file": "audio/3sl-b82216.mp3",
      "dur": 0.89,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "عشا",
-     "file": "audio/3sha-2c7ce7.mp3",
+     "file": "audio/3sha-ae0682.mp3",
      "dur": 0.94,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "عصير",
-     "file": "audio/3syr-c7a519.mp3",
+     "file": "audio/3syr-20248f.mp3",
      "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "عنب",
-     "file": "audio/3nb-912770.mp3",
+     "file": "audio/3nb-a16e31.mp3",
      "dur": 0.82,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "غدا",
-     "file": "audio/ghda-2a7315.mp3",
-     "dur": 0.98,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "file": "audio/ghda-4c0ba6.mp3",
+     "dur": 1.01,
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "فاسد",
-     "file": "audio/fasd-45a734.mp3",
+     "file": "audio/fasd-59816e.mp3",
      "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "فاصوليا",
-     "file": "audio/faswlya-36f5f1.mp3",
+     "file": "audio/faswlya-0ff561.mp3",
      "dur": 0.94,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "فطور",
-     "file": "audio/ftwr-fd06b2.mp3",
+     "file": "audio/ftwr-8562de.mp3",
      "dur": 0.89,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "فلفل",
-     "file": "audio/flfl-5e621a.mp3",
+     "file": "audio/flfl-dbe1a9.mp3",
      "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "فنجان",
-     "file": "audio/fnjan-ca9d02.mp3",
+     "file": "audio/fnjan-870487.mp3",
      "dur": 1.25,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "فواكه",
-     "file": "audio/fwakh-c3c191.mp3",
+     "file": "audio/fwakh-faaf91.mp3",
      "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "قشطة",
-     "file": "audio/qshta-b22fe8.mp3",
+     "file": "audio/qshta-07b96a.mp3",
      "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "قنّينة",
-     "file": "audio/qnyna-7132b6.mp3",
+     "file": "audio/qnyna-c4f1ae.mp3",
      "dur": 0.94,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "قهوة",
-     "file": "audio/qhwa-51b7c2.mp3",
+     "file": "audio/qhwa-92e095.mp3",
      "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "كاسة",
-     "file": "audio/kasa-07b668.mp3",
+     "file": "audio/kasa-a60d56.mp3",
      "dur": 0.84,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "كبّاية",
-     "file": "audio/kbaya-9f4536.mp3",
-     "dur": 1.3,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "file": "audio/kbaya-f86d00.mp3",
+     "dur": 1.32,
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "ليمون",
-     "file": "audio/lymwn-9a5196.mp3",
+     "file": "audio/lymwn-390cea.mp3",
      "dur": 1.01,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "مرميّة",
-     "file": "audio/mrmya-24a193.mp3",
+     "file": "audio/mrmya-76ca0c.mp3",
      "dur": 1.08,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "مشروب",
-     "file": "audio/mshrwb-b492b7.mp3",
+     "file": "audio/mshrwb-940a57.mp3",
      "dur": 0.84,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "مشمش",
-     "file": "audio/mshmsh-9cf232.mp3",
-     "dur": 0.82,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "file": "audio/mshmsh-8d0648.mp3",
+     "dur": 0.86,
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "مَطبَخ",
-     "file": "audio/mtbkh-bdd2ec.mp3",
+     "file": "audio/mtbkh-fbb9c3.mp3",
      "dur": 0.94,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "مطعم",
-     "file": "audio/mt3m-93f823.mp3",
+     "file": "audio/mt3m-e91b29.mp3",
      "dur": 0.82,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "معلقة",
-     "file": "audio/m3lqa-43042a.mp3",
+     "file": "audio/m3lqa-f040e1.mp3",
      "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "مقهى",
-     "file": "audio/mqhy-1aa2c2.mp3",
+     "file": "audio/mqhy-89d87e.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "ملفوف",
-     "file": "audio/mlfwf-e2a836.mp3",
-     "dur": 0.98,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "file": "audio/mlfwf-5f31c0.mp3",
+     "dur": 0.96,
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "مي",
-     "file": "audio/my-8f67e7.mp3",
+     "file": "audio/my-07bda6.mp3",
      "dur": 0.6,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "نبيد",
-     "file": "audio/nbyd-7d0f92.mp3",
+     "file": "audio/nbyd-4582f3.mp3",
      "dur": 0.84,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     },
     {
      "ar": "نعنع",
-     "file": "audio/n3n3-947232.mp3",
+     "file": "audio/n3n3-a77d44.mp3",
      "dur": 0.84,
-     "speaker": "AdrianAbdulBaha (IbrahimZ)"
+     "speaker": "IbrahimZ (AdrianAbdulBaha)"
     }
    ]
   },
   {
    "id": "time",
    "title": "Time & when things happen",
-   "speaker": "AdrianAbdulBaha (AseelF)",
+   "speaker": "AseelF (AdrianAbdulBaha)",
    "clips": [
     {
      "ar": "ابَدًا",
-     "file": "audio/abda-1eab44.mp3",
+     "file": "audio/abda-5c3894.mp3",
      "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "آخِر",
-     "file": "audio/akhr-0c3b63.mp3",
+     "file": "audio/akhr-cd1028.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "اخيرًا",
-     "file": "audio/akhyra-266553.mp3",
+     "file": "audio/akhyra-eb7542.mp3",
      "dur": 0.82,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "اُسبوع",
-     "file": "audio/asbw3-03602e.mp3",
+     "file": "audio/asbw3-176943.mp3",
      "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "الليلة",
-     "file": "audio/allyla-90a172.mp3",
+     "file": "audio/allyla-7f1641.mp3",
      "dur": 0.84,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "اليوم",
-     "file": "audio/alywm-ceeca8.mp3",
+     "file": "audio/alywm-127dec.mp3",
      "dur": 0.82,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "بدري",
-     "file": "audio/bdry-3a780c.mp3",
+     "file": "audio/bdry-377d44.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "بَعد",
-     "file": "audio/b3d-917fee.mp3",
+     "file": "audio/b3d-ebb86c.mp3",
      "dur": 0.82,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "بعدين",
-     "file": "audio/b3dyn-c275e4.mp3",
+     "file": "audio/b3dyn-d6081b.mp3",
      "dur": 0.89,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "بُكرا",
-     "file": "audio/bkra-3c6ee2.mp3",
+     "file": "audio/bkra-da904f.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "بَكّير",
-     "file": "audio/bkyr-5d1f64.mp3",
+     "file": "audio/bkyr-068e63.mp3",
      "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "تلاتة",
-     "file": "audio/tlata-12ca84.mp3",
+     "file": "audio/tlata-f2e01d.mp3",
      "dur": 0.82,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "تنتين",
-     "file": "audio/tntyn-18afa4.mp3",
+     "file": "audio/tntyn-0d46f1.mp3",
      "dur": 0.86,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "ثانية",
-     "file": "audio/thanya-5135a9.mp3",
+     "file": "audio/thanya-96df66.mp3",
      "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "حاليًا",
-     "file": "audio/halya-807651.mp3",
+     "file": "audio/halya-946a99.mp3",
      "dur": 0.98,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "دايمًا",
-     "file": "audio/dayma-de62c0.mp3",
-     "dur": 1.03,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "file": "audio/dayma-648aea.mp3",
+     "dur": 1.15,
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "دَقيقة",
-     "file": "audio/dqyqa-88ad8a.mp3",
+     "file": "audio/dqyqa-c7b0be.mp3",
      "dur": 0.86,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "زَمان",
-     "file": "audio/zman-fbed7d.mp3",
+     "file": "audio/zman-920ca4.mp3",
      "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "ساعة",
-     "file": "audio/sa3a-2a1b1a.mp3",
+     "file": "audio/sa3a-586700.mp3",
      "dur": 0.82,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "سَنة",
-     "file": "audio/sna-661283.mp3",
+     "file": "audio/sna-7a248b.mp3",
      "dur": 0.96,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "شَهر",
-     "file": "audio/shhr-3167fd.mp3",
+     "file": "audio/shhr-609450.mp3",
      "dur": 0.79,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "صَباحيّة",
-     "file": "audio/sbahya-48bcf8.mp3",
+     "file": "audio/sbahya-8aff8d.mp3",
      "dur": 1.08,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "صُبُح",
-     "file": "audio/sbh-15ac73.mp3",
+     "file": "audio/sbh-a6fa2f.mp3",
      "dur": 0.91,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "فَترة",
-     "file": "audio/ftra-9b7d77.mp3",
-     "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "file": "audio/ftra-b43e04.mp3",
+     "dur": 0.79,
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "قَبل",
-     "file": "audio/qbl-63e250.mp3",
+     "file": "audio/qbl-8416bf.mp3",
      "dur": 0.62,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "لَحظة",
-     "file": "audio/lhza-9cafb6.mp3",
+     "file": "audio/lhza-d2b977.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "لِسّا",
-     "file": "audio/lsa-ed5e92.mp3",
+     "file": "audio/lsa-225852.mp3",
      "dur": 0.7,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "ليل",
-     "file": "audio/lyl-388042.mp3",
+     "file": "audio/lyl-1a256f.mp3",
      "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "ليلة",
-     "file": "audio/lyla-af8063.mp3",
+     "file": "audio/lyla-c456e7.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "ماضي",
-     "file": "audio/mady-da1483.mp3",
+     "file": "audio/mady-bdf22a.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "مبارِح",
-     "file": "audio/mbarh-4c7690.mp3",
+     "file": "audio/mbarh-5bd484.mp3",
      "dur": 0.98,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "متأخِّر",
-     "file": "audio/mtakhr-82ad9d.mp3",
-     "dur": 1.03,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "file": "audio/mtakhr-30f9a2.mp3",
+     "dur": 1.06,
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "مُدّة",
-     "file": "audio/mda-de7692.mp3",
+     "file": "audio/mda-f25507.mp3",
      "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "مَسا",
-     "file": "audio/msa-f5da95.mp3",
+     "file": "audio/msa-3412ab.mp3",
      "dur": 0.7,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "مستقبل",
-     "file": "audio/mstqbl-4e6df8.mp3",
+     "file": "audio/mstqbl-2c5aef.mp3",
      "dur": 1.01,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "نادِرًا",
-     "file": "audio/nadra-66bd44.mp3",
+     "file": "audio/nadra-34c55c.mp3",
      "dur": 0.89,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "نهار",
-     "file": "audio/nhar-eeac42.mp3",
+     "file": "audio/nhar-628fc5.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "وَقت",
-     "file": "audio/wqt-63cad9.mp3",
+     "file": "audio/wqt-a90fab.mp3",
      "dur": 0.7,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     },
     {
      "ar": "يوم",
-     "file": "audio/ywm-7e6ded.mp3",
+     "file": "audio/ywm-345ace.mp3",
      "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (AseelF)"
+     "speaker": "AseelF (AdrianAbdulBaha)"
     }
    ]
   },
   {
    "id": "extra",
    "title": "Existing vocabulary",
-   "speaker": "AdrianAbdulBaha (AmmanM) · AdrianAbdulBaha (Aseel Abdulrahman) · AdrianAbdulBaha (Muhammad) · Khalil.rantissi",
+   "speaker": "AdrianAbdulBaha · AmmanM (AdrianAbdulBaha) · Aseel Abdulrahman (AdrianAbdulBaha) · Basil (AdrianAbdulBaha) · Muhammad (AdrianAbdulBaha)",
    "clips": [
     {
-     "ar": "عمّ",
-     "file": "audio/3m-a9b8cf.mp3",
-     "dur": 0.67,
-     "speaker": "AdrianAbdulBaha (Muhammad)"
+     "ar": "مرحبا",
+     "file": "audio/mrhba-b63bc0.mp3",
+     "dur": 0.86,
+     "speaker": "AdrianAbdulBaha"
     },
     {
-     "ar": "إجا",
-     "file": "audio/aja-769976.mp3",
-     "dur": 0.62,
-     "speaker": "Khalil.rantissi"
-    },
-    {
-     "ar": "قال",
-     "file": "audio/qal-4d8d77.mp3",
+     "ar": "أهلين",
+     "file": "audio/ahlyn-1b2247.mp3",
      "dur": 0.79,
-     "speaker": "Khalil.rantissi"
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "الحمد لله",
+     "file": "audio/alhmd-llh-1c7b14.mp3",
+     "dur": 1.06,
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "مع السلامة",
+     "file": "audio/m3-alslama-03452b.mp3",
+     "dur": 1.06,
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "يلّا",
+     "file": "audio/yla-8ab07b.mp3",
+     "dur": 0.84,
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "مبروك",
+     "file": "audio/mbrwk-1649b6.mp3",
+     "dur": 0.82,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "أهلا وسهلا",
+     "file": "audio/ahla-wshla-00d788.mp3",
+     "dur": 0.96,
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "شو",
+     "file": "audio/shw-faa7fa.mp3",
+     "dur": 0.74,
+     "speaker": "Basil (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "ليش",
+     "file": "audio/lysh-d9d721.mp3",
+     "dur": 0.72,
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "وين",
+     "file": "audio/wyn-e2cac8.mp3",
+     "dur": 0.72,
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "كيف",
+     "file": "audio/kyf-9df3bd.mp3",
+     "dur": 0.82,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "مين",
+     "file": "audio/myn-8f213f.mp3",
+     "dur": 0.6,
+     "speaker": "Basil (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "قدّيش",
+     "file": "audio/qdysh-be19f4.mp3",
+     "dur": 0.91,
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "أيّ",
+     "file": "audio/ay-5a1f56.mp3",
+     "dur": 0.6,
+     "speaker": "Basil (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "هدول",
+     "file": "audio/hdwl-d6244d.mp3",
+     "dur": 0.77,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "هيك",
+     "file": "audio/hyk-7e1b8f.mp3",
+     "dur": 0.67,
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "مش",
+     "file": "audio/msh-9b7fa7.mp3",
+     "dur": 0.82,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "بدّي",
+     "file": "audio/bdy-8bbf67.mp3",
+     "dur": 0.67,
+     "speaker": "Basil (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "لازم",
+     "file": "audio/lazm-4cb925.mp3",
+     "dur": 0.91,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "ممكن",
+     "file": "audio/mmkn-d9ee74.mp3",
+     "dur": 1.01,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "بشتغل",
+     "file": "audio/bshtghl-bd85b0.mp3",
+     "dur": 0.89,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "عمّ",
+     "file": "audio/3m-7ab0cb.mp3",
+     "dur": 0.67,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "رح",
+     "file": "audio/rh-d1ac19.mp3",
+     "dur": 0.53,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
      "ar": "شوي",
-     "file": "audio/shwy-c988ec.mp3",
+     "file": "audio/shwy-d9293a.mp3",
      "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (Muhammad)"
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
-     "ar": "خَلَّص",
-     "file": "audio/khls-54df5e.mp3",
-     "dur": 1.2,
-     "speaker": "Khalil.rantissi"
+     "ar": "كتير",
+     "file": "audio/ktyr-0581d7.mp3",
+     "dur": 0.82,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
-     "ar": "أكيد",
-     "file": "audio/akyd-4b29f7.mp3",
-     "dur": 0.94,
-     "speaker": "Khalil.rantissi"
+     "ar": "يمكن",
+     "file": "audio/ymkn-51ea84.mp3",
+     "dur": 0.84,
+     "speaker": "AdrianAbdulBaha"
     },
     {
-     "ar": "لِأنّه",
-     "file": "audio/lanh-539f39.mp3",
-     "dur": 1.25,
-     "speaker": "Khalil.rantissi"
+     "ar": "سوا",
+     "file": "audio/swa-1136f8.mp3",
+     "dur": 0.72,
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "يعني",
+     "file": "audio/y3ny-3c3361.mp3",
+     "dur": 0.82,
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "بابا",
+     "file": "audio/baba-f8bffa.mp3",
+     "dur": 0.86,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
      "ar": "ماما",
-     "file": "audio/mama-2005c9.mp3",
+     "file": "audio/mama-e02923.mp3",
      "dur": 0.7,
-     "speaker": "AdrianAbdulBaha (Muhammad)"
-    },
-    {
-     "ar": "اُخت",
-     "file": "audio/akht-a1df86.mp3",
-     "dur": 0.72,
-     "speaker": "Khalil.rantissi"
-    },
-    {
-     "ar": "أبَّن",
-     "file": "audio/abn-1a5aa5.mp3",
-     "dur": 0.91,
-     "speaker": "Khalil.rantissi"
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
      "ar": "جار",
-     "file": "audio/jar-065e4b.mp3",
+     "file": "audio/jar-f4b955.mp3",
      "dur": 0.74,
-     "speaker": "AdrianAbdulBaha (Muhammad)"
-    },
-    {
-     "ar": "جوز",
-     "file": "audio/jwz-e9403b.mp3",
-     "dur": 1.01,
-     "speaker": "Khalil.rantissi"
-    },
-    {
-     "ar": "سِكِر",
-     "file": "audio/skr-56a44c.mp3",
-     "dur": 0.86,
-     "speaker": "Khalil.rantissi"
-    },
-    {
-     "ar": "ملح",
-     "file": "audio/mlh-740d69.mp3",
-     "dur": 0.62,
-     "speaker": "Khalil.rantissi"
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
      "ar": "بيت",
-     "file": "audio/byt-26ef68.mp3",
-     "dur": 1.01,
-     "speaker": "AdrianAbdulBaha (AmmanM)"
+     "file": "audio/byt-87c057.mp3",
+     "dur": 0.98,
+     "speaker": "AmmanM (AdrianAbdulBaha)"
     },
     {
-     "ar": "شَغَّل",
-     "file": "audio/shghl-7d1d74.mp3",
-     "dur": 1.06,
-     "speaker": "Khalil.rantissi"
+     "ar": "شُغل",
+     "file": "audio/shghl-da77b1.mp3",
+     "dur": 0.7,
+     "speaker": "AmmanM (AdrianAbdulBaha)"
     },
     {
      "ar": "مدرسة",
-     "file": "audio/mdrsa-323eea.mp3",
+     "file": "audio/mdrsa-e1669c.mp3",
      "dur": 0.86,
-     "speaker": "AdrianAbdulBaha (Muhammad)"
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
      "ar": "جامعة",
-     "file": "audio/jam3a-3ceaf2.mp3",
+     "file": "audio/jam3a-53cd95.mp3",
      "dur": 0.84,
-     "speaker": "AdrianAbdulBaha (Muhammad)"
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
      "ar": "سيارة",
-     "file": "audio/syara-55729d.mp3",
+     "file": "audio/syara-386b1d.mp3",
      "dur": 1.32,
-     "speaker": "AdrianAbdulBaha (Aseel Abdulrahman)"
+     "speaker": "Aseel Abdulrahman (AdrianAbdulBaha)"
     },
     {
      "ar": "شارع",
-     "file": "audio/shar3-279b31.mp3",
+     "file": "audio/shar3-0b19a2.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (AmmanM)"
+     "speaker": "AmmanM (AdrianAbdulBaha)"
     },
     {
      "ar": "محلّ",
-     "file": "audio/mhl-da239c.mp3",
+     "file": "audio/mhl-91cc6d.mp3",
      "dur": 0.77,
-     "speaker": "AdrianAbdulBaha (AmmanM)"
+     "speaker": "AmmanM (AdrianAbdulBaha)"
     },
     {
-     "ar": "سَوَّق",
-     "file": "audio/swq-de964e.mp3",
-     "dur": 0.91,
-     "speaker": "Khalil.rantissi"
+     "ar": "سوق",
+     "file": "audio/swq-90011b.mp3",
+     "dur": 0.62,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
      "ar": "مصاري",
-     "file": "audio/msary-98e518.mp3",
+     "file": "audio/msary-24a6d6.mp3",
      "dur": 1.27,
-     "speaker": "AdrianAbdulBaha (Muhammad)"
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
      "ar": "باص",
-     "file": "audio/bas-5a5e49.mp3",
+     "file": "audio/bas-9b276e.mp3",
      "dur": 0.82,
-     "speaker": "AdrianAbdulBaha (Aseel Abdulrahman)"
+     "speaker": "Aseel Abdulrahman (AdrianAbdulBaha)"
     },
     {
      "ar": "تلفون",
-     "file": "audio/tlfwn-03f7d8.mp3",
+     "file": "audio/tlfwn-ab54ea.mp3",
      "dur": 0.89,
-     "speaker": "AdrianAbdulBaha (Muhammad)"
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "كبير",
+     "file": "audio/kbyr-6a23b8.mp3",
+     "dur": 0.79,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "زغير",
+     "file": "audio/zghyr-3b6b03.mp3",
+     "dur": 0.79,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "جديد",
+     "file": "audio/jdyd-66ba8b.mp3",
+     "dur": 0.84,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "قديم",
+     "file": "audio/qdym-1af5f8.mp3",
+     "dur": 0.82,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
      "ar": "حامي",
-     "file": "audio/hamy-1d54a8.mp3",
+     "file": "audio/hamy-3308a8.mp3",
      "dur": 0.72,
-     "speaker": "AdrianAbdulBaha (Muhammad)"
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
-     "ar": "تَعبان",
-     "file": "audio/t3ban-ad4de2.mp3",
-     "dur": 1.15,
-     "speaker": "Khalil.rantissi"
+     "ar": "بارد",
+     "file": "audio/bard-39b57e.mp3",
+     "dur": 0.77,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
-     "ar": "جوعان",
-     "file": "audio/jw3an-537d6c.mp3",
-     "dur": 1.32,
-     "speaker": "Khalil.rantissi"
+     "ar": "مبسوط",
+     "file": "audio/mbswt-8cce3e.mp3",
+     "dur": 0.82,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
-     "ar": "عَطشان",
-     "file": "audio/3tshan-c97cae.mp3",
-     "dur": 1.3,
-     "speaker": "Khalil.rantissi"
+     "ar": "مشغول",
+     "file": "audio/mshghwl-8d79d1.mp3",
+     "dur": 0.91,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     },
     {
-     "ar": "زَعلان",
-     "file": "audio/z3lan-04d8db.mp3",
-     "dur": 1.1,
-     "speaker": "Khalil.rantissi"
+     "ar": "رخيص",
+     "file": "audio/rkhys-750099.mp3",
+     "dur": 0.82,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "غالي",
+     "file": "audio/ghaly-7de0c0.mp3",
+     "dur": 0.77,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
+    },
+    {
+     "ar": "سَهَّل",
+     "file": "audio/shl-b4fc03.mp3",
+     "dur": 0.86,
+     "speaker": "AdrianAbdulBaha"
+    },
+    {
+     "ar": "صعب",
+     "file": "audio/s3b-3dbc6e.mp3",
+     "dur": 0.74,
+     "speaker": "Muhammad (AdrianAbdulBaha)"
     }
    ]
   }

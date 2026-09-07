@@ -15,37 +15,33 @@ the dialect of Jordan, Palestine, Lebanon, and Syria — rather than Modern Stan
 - **Open knowledge sources**
   - Every word has an in-app **Wiktionary** definition lookup (the app prefers
     the *South/North Levantine Arabic* sections) plus a link to the full entry.
-  - Word audio is fetched from **Wikimedia Commons** — Lingua Libre recordings
-    by native Levantine speakers (language codes `ajp`/`apc`, CC BY-SA) — when
-    a recording exists. A gold ring around the speaker button means you're
-    hearing a real human recording.
-  - When no recording exists (and for full sentences), the app falls back to
-    your browser's Arabic text-to-speech. Note: browser TTS voices are Modern
-    Standard Arabic flavoured, so treat sentence audio as an approximation.
+  - Word audio is **Lingua Libre** recordings from Wikimedia Commons by native
+    Levantine speakers (language codes `ajp`/`apc`, CC BY-SA), selected at build
+    time and shipped with the app.
+  - There is **no text-to-speech**. A word with no recording is marked "no
+    recording" and stays silent — see below.
 
-## Pronunciation tuning
+## No text-to-speech
 
-MSA-trained TTS voices misread some dialect words — most famously مرحبا, which
-gets classical nunation ("marḥaban") instead of the Levantine *marḥaba*. The
-app corrects this in three ways:
+The app used to fall back to the browser's Arabic voice wherever a recording
+was missing, with a respelling map, an urban-qāf switch and a voice picker to
+make it less wrong. It stayed wrong: those voices are trained on Modern
+Standard Arabic and read the dialect with case endings and a qāf nobody uses
+in Damascus or Amman — مرحبا came out *marḥaban*. A learner who hears that has
+to unlearn it later, which is worse than not hearing the word at all.
 
-1. **Respelling map** — `TTS_FIXES` in `data.js` substitutes a fully
-   vocalised spelling before speaking (`مرحبا` → `مَرْحَبَا`), which overrides
-   the voice's lexicon. If a word sounds wrong to you, add an entry there
-   (or a per-word `tts` field on the vocab item).
-2. **Urban qāf** — a setting (on by default, matching the transliterations)
-   that converts ق to hamza in the spoken text only, so قهوة is spoken
-   *ʾahwe* rather than *qahwa*. Turn it off if you prefer qāf/g realisations.
-3. **Voice picker** — the app auto-prefers *locally installed* regional Levantine voices
-   (`ar-LB`, `ar-SY`, `ar-JO`, `ar-PS`) when the system has them, and the
-   Settings tab lets you pick one explicitly. Microsoft Edge ships neural
-   voices for all of these and they sound far closer to the dialect than
-   the default MSA voice; Chrome/Safari system voices are usually MSA only.
-   Some browsers list voices that accept an utterance and then silently play
-   nothing (typically network-backed ones), so playback watchdogs each voice
-   and moves to the next candidate if speech never starts — ending at the
-   browser default. **Settings → Test** speaks a sample through the current
-   voice if you want to check one by hand.
+So synthesis is gone, and with it the pronunciation settings. Audio is a native
+recording or nothing:
+
+- Words with a clip play it; words without are shown with a "no recording"
+  marker and no play button.
+- New words with recordings are introduced ahead of silent ones, so the daily
+  session is as audible as the corpus allows.
+- The dialogues under **Texts** are a reading exercise now. Nothing recorded
+  covers a whole sentence, so there is no line playback to offer.
+
+Fixing a word's pronunciation therefore means finding it a recording, not
+tuning a voice: see *Where word audio comes from*.
 
 ## Running it
 
@@ -77,10 +73,11 @@ Deploy from a branch*, pick the branch and `/ (root)`.
 
 ### Where word audio comes from
 
-Words with a recording play a real South Levantine speaker; everything else,
-and every sentence, falls back to the browser's Arabic voice. Recordings are
-chosen at **build time** and ship with the app, so every learner hears the same
-clip and hears it immediately — no lookup, no network, and it works offline.
+Recordings are chosen at **build time** and ship with the app, so every learner
+hears the same clip and hears it immediately — no lookup, no network, and it
+works offline. They are also the app's only audio, which makes coverage the
+thing that matters: a word missing from `audio/manifest.json` is a word nobody
+hears.
 
 The pipeline has two halves. Acquisition pulls recordings into `corpus/`, which
 is gitignored:
@@ -103,12 +100,15 @@ python3 tools/build_audio.py            # write audio/ + audio/manifest.json
 `tools/selection.json` decides which recordings make it: one speaker per lesson
 so a lesson keeps a consistent voice, `"speaker": "*"` to pool everyone for
 supplementary words, and `exclude` to reject a clip a listening pass rejected.
+`"words": "vocab"` takes every word `data.js` teaches that anyone recorded,
+read from the source — a hand-copied list is how مرحبا stayed silent while its
+recording sat in the category all along.
 Both a Lingua Libre dataset zip and a flat Commons download index the same way.
 
 Clips are 24 kHz mono MP3 rather than the source Ogg: Safari and iOS play Ogg
 unreliably, and contributors record at levels spanning several dB, which makes
 a lesson lurch in volume from card to card. `audio/` and its manifest are
-committed — about 1 MB — and the manifest carries the speaker and CC-BY-SA
+committed — 232 clips, about 1.8 MB — and the manifest carries the speaker and CC-BY-SA
 attribution for every clip, which Settings displays.
 
 Run `python3 tools/make_review.py` to build `build/review.html`: every clip
