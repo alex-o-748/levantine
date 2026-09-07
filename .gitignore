@@ -9,3 +9,9 @@ build/
 
 __pycache__/
 *.pyc
+
+# A virtualenv for the tools/ scripts. Homebrew and system Pythons refuse
+# `pip install` (PEP 668), so a venv in the checkout is the normal way to get
+# huggingface_hub and the `hf` command; it must never be committed.
+.venv/
+venv/
