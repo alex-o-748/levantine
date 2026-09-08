@@ -37,6 +37,23 @@ function newWords(limit) {
 function introducedToday() {
   return Object.values(progress).filter(p => p.introduced === todayKey()).length;
 }
+// Spread new words evenly through the reviews instead of queuing all due
+// reviews first: an unbounded review backlog would otherwise crowd new
+// words out of every session that doesn't clear it, and learning stalls.
+function interleave(due, fresh) {
+  if (!due.length) return fresh.slice();
+  if (!fresh.length) return due.slice();
+  const out = [];
+  const step = fresh.length / due.length;
+  let acc = 0, fi = 0;
+  for (const w of due) {
+    out.push(w);
+    acc += step;
+    while (acc >= 1 && fi < fresh.length) { out.push(fresh[fi++]); acc -= 1; }
+  }
+  while (fi < fresh.length) out.push(fresh[fi++]);
+  return out;
+}
 
 // ————————————————————— Recordings —————————————————————
 
@@ -282,7 +299,7 @@ function renderToday() {
            <span class="muted">Come back tomorrow, or browse Words and Texts.</span></p>`}
     </div>`;
   const start = document.getElementById("btn-start");
-  if (start) start.onclick = () => startSession([...due, ...fresh]);
+  if (start) start.onclick = () => startSession(interleave(due, fresh));
 }
 
 let queue = [], sessionTotal = 0;
