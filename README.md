@@ -108,15 +108,15 @@ guarantees is that no two characters *within one text* share a voice. The file
 also holds `speed` (0.9 — these are A1 listening texts).
 
 **Why cloning rather than voice design.** The first version described each
-character to OmniVoice as `male` or `female` and let it invent a voice. That
-does not hold an accent: the model draws a new speaker on every call, so 27
-lines marked `female` were 27 different women, some of them Egyptian. The
-listening pass caught ج read as an Egyptian [g] on some lines and a Levantine
-[ʒ] on others — one model, one dialogue. Nothing in the instruct vocabulary
-says "Levantine", so there was no way to correct it (see `_dialect_note` in
-`synth.json`). Cloning pins the speaker, and the accent comes with them. It
-also makes the per-character casting real: before, سامر was not one voice
-across his five lines, just five different men.
+character to OmniVoice as `male` or `female` and let it invent a voice. The
+model draws a new speaker on every call, so 27 lines marked `female` were 27
+different women — سامر was not one voice across his five lines either, just
+five different men who happened to be male. Cloning from a fixed clip pins the
+speaker, which is what makes the per-character casting real rather than
+nominal.
+
+It does **not** fix the accent, which is what it was originally reached for.
+See the rough edge below.
 
 The pool is borrowed from `leva-tts`'s repo — ten clips, five male and five
 female, fetched without its 5.6 GB checkpoint. That model lost the listening
@@ -128,6 +128,29 @@ speech per voice, named for the voice.
 Clips are keyed by position but validated against the words they were generated
 from, so editing a line in `data.js` retires its audio instead of leaving the
 old sentence playing under the new text.
+
+### Known rough edge: some words get an Egyptian ج
+
+The dialect is not reliably Levantine, and the cause is narrower than it first
+looked. In جديد the ج comes out as an Egyptian [g] — *gedīd* rather than
+*jdīd* — while the same letter in جيبلنا, in another line, is a correct [ʒ].
+
+It is not the speaker. Generating one line three ways — cloned from a reference
+with its transcript, cloned without, and with no reference at all — gave the
+Egyptian [g] in **all three**. The reference clips themselves were auditioned
+and are Levantine. So the accent here is not carried by the voice; the model
+has a per-token pronunciation prior, and for a word as common as جديد the
+Egyptian reading dominates whatever it was trained on. No speaker conditioning
+moves it, and the instruct vocabulary has no dialect to override it with.
+
+The lever that fits the shape of the problem is a **respelling map** applied to
+the text the model reads and nothing else — the learner still sees جديد. This
+repo had exactly that once, as `TTS_FIXES`, for the same class of bug when a
+browser voice said *marḥaban*; it was deleted along with browser TTS. The
+promising substitution is ژ (U+0698), which is unambiguously [ʒ] where ج is
+ambiguous, on the bet that a 600-language model has seen it. **Untested at time
+of writing.** If it works, the map belongs in `synth.json`, entry by entry,
+each one confirmed by ear before it ships.
 
 ### Known rough edge: short lines are rushed
 

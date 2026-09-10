@@ -25,20 +25,21 @@
  ],
 
  "_why_ref": [
-  "Every character has a `ref` because voice design could not hold an accent.",
+  "Every character has a `ref` so that the character is ONE person.",
   "",
   "OmniVoice invents a speaker per call: `instruct: \"female\"` is not a voice,",
-  "it is a filter, and each of the 27 female lines got a different woman — with",
-  "a different regional accent. The first listening pass caught ج read as an",
-  "Egyptian [g] in خمسة/إجي on some lines and a Levantine [ʒ] on others, from",
-  "one model, inside one dialogue. Since the instruct vocabulary contains no",
-  "Arabic dialect (see _dialect_note), there is no attribute that says",
-  "\"Levantine\" and nothing to correct it with.",
+  "it is a filter, and each of the 27 female lines got a different woman. سامر",
+  "was not one voice across his five lines either — he was five different men",
+  "who happened to be male. Cloning from a fixed clip is what makes the mapping",
+  "above mean anything.",
   "",
-  "Cloning fixes the speaker, and the accent comes with the speaker. It also",
-  "makes the per-character mapping real rather than nominal: before this, سامر",
-  "was not one voice across his five lines, he was five different men who",
-  "happened to be male."
+  "It does NOT fix the accent. That was the original reason for reaching for it",
+  "and it turned out to be the wrong diagnosis: one line generated cloned with a",
+  "transcript, cloned without, and with no reference at all came out with the",
+  "Egyptian [g] in جديد all three times, and the reference clips themselves were",
+  "auditioned and are Levantine. The accent lives in the model's per-token",
+  "prior, not in the speaker. See the README's rough-edge section — the lever",
+  "for that is a respelling map, not a voice."
  ],
 
  "_references_note": [
