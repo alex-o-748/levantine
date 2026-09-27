@@ -28,14 +28,17 @@ function dueWords() {
 // Words with a recording come first. A recording is the only audio the app
 // has, so a word without one is taught silently — that is worth postponing,
 // but not worth dropping the word over.
-function newWords(limit) {
-  const fresh = VOCAB.filter(w => !progress[w.id]);
+function newWords(limit, exclude = []) {
+  const fresh = VOCAB.filter(w => !progress[w.id] && !exclude.includes(w));
   const spoken = fresh.filter(hasClip);
   return spoken.concat(fresh.filter(w => !hasClip(w))).slice(0, limit);
 }
-// New words already introduced today still count against the daily budget.
+// New words already introduced today still count against the daily budget —
+// except ones the learner already knew (Easy on first sight): those were never
+// really taught, and letting them eat the budget left the learner stuck on the
+// same handful of words with nothing new to move on to.
 function introducedToday() {
-  return Object.values(progress).filter(p => p.introduced === todayKey()).length;
+  return Object.values(progress).filter(p => p.introduced === todayKey() && !p.known).length;
 }
 
 // ————————————————————— Recordings —————————————————————
@@ -279,10 +282,15 @@ function renderToday() {
       ${fresh.length + due.length
         ? `<button class="btn primary big" id="btn-start">Start session</button>`
         : `<p class="done-msg">كل شي خلص لليوم — all done for today! 🎉<br>
-           <span class="muted">Come back tomorrow, or browse Words and Texts.</span></p>`}
+           <span class="muted">Come back tomorrow, or browse Words and Texts.</span></p>
+           ${newWords(1).length
+             ? `<button class="btn primary" id="btn-more">Learn ${settings.newPerDay} more words</button>`
+             : ""}`}
     </div>`;
   const start = document.getElementById("btn-start");
   if (start) start.onclick = () => startSession([...due, ...fresh]);
+  const more = document.getElementById("btn-more");
+  if (more) more.onclick = () => startSession(newWords(settings.newPerDay));
 }
 
 let queue = [], sessionTotal = 0;
@@ -340,10 +348,23 @@ function nextCard() {
   sessionEl.querySelector(".grade-easy").onclick = () => grade(word, 2);
 }
 
+// A word already known on first sight skips straight to a two-week interval.
+const KNOWN_BOX = 4;
+
 function grade(word, quality) {
+  const isNew = !progress[word.id];
   const p = progress[word.id] || { box: 0, introduced: todayKey() };
   queue.shift();
-  if (quality === 0) {
+  if (isNew && quality === 2) {
+    // Already known: it frees its slot in today's budget, so pull in the next
+    // unseen word to take its place and the session keeps moving forward.
+    p.known = true;
+    p.box = KNOWN_BOX;
+    p.due = Date.now() + INTERVALS[p.box] * DAY_MS;
+    const next = newWords(1, [word, ...queue]);
+    if (next.length) { queue.push(next[0]); sessionTotal++; }
+  } else if (quality === 0) {
+    delete p.known;
     p.box = 1;
     p.due = Date.now(); // seen again later this session
     queue.push(word);   // re-queue at the end
