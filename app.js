@@ -10,8 +10,14 @@ const SETTINGS_KEY = "yalla.settings.v1";
 const INTERVALS = [0, 1, 3, 7, 14, 30, 60];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+const HISTORY_KEY = "yalla.history.v1";
+
 let progress = load(STORE_KEY, {});          // { [wordId]: {box, due} }
 let settings = load(SETTINGS_KEY, { newPerDay: 8, translit: true });
+// What each day's sessions got through: { [day]: {reviewed, recalled, learned, knew} }.
+// It is what lets a session end on "here's what today added up to" and the
+// Today tab show a streak, rather than one undifferentiated stream of cards.
+let history = load(HISTORY_KEY, {});
 
 function load(key, fallback) {
   try { return { ...fallback, ...JSON.parse(localStorage.getItem(key) || "{}") }; }
@@ -19,7 +25,12 @@ function load(key, fallback) {
 }
 function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
-function todayKey() { return new Date().toISOString().slice(0, 10); }
+// The learner's own calendar day, not UTC's: a streak that breaks because an
+// evening session landed on the next UTC date is no streak at all.
+function dayKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function todayKey() { return dayKey(); }
 
 function dueWords() {
   const now = Date.now();
@@ -261,61 +272,219 @@ document.getElementById("tabs").addEventListener("click", e => {
 const todaySummary = document.getElementById("today-summary");
 const sessionEl = document.getElementById("session");
 
+// A day's work comes in two parts with an end: first the words that are due
+// again, then today's new ones. The session used to deal both from a single
+// pile, so it never said which kind of card you were on or how far through
+// either you were — and a pile that refilled itself felt like it never ended.
+
+const EMPTY_LOG = { reviewed: 0, recalled: 0, learned: 0, knew: 0 };
+function logFor(day = todayKey()) { return { ...EMPTY_LOG, ...history[day] }; }
+function bump(field) {
+  const day = todayKey();
+  history[day] = logFor(day);
+  history[day][field]++;
+  save(HISTORY_KEY, history);
+}
+function activeOn(day) {
+  const h = logFor(day);
+  return h.reviewed + h.learned + h.knew > 0;
+}
+// Consecutive days with a session. Today only counts once it has one, but not
+// having practised yet this morning doesn't break yesterday's run.
+function streak() {
+  const d = new Date();
+  if (!activeOn(dayKey(d))) d.setDate(d.getDate() - 1);
+  let n = 0;
+  while (activeOn(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+  return n;
+}
+
+// Progress written before there was a history still says which day each word
+// was introduced, so a returning learner keeps the days they already put in.
+if (localStorage.getItem(HISTORY_KEY) === null) {
+  for (const p of Object.values(progress)) {
+    if (!p.introduced) continue;
+    history[p.introduced] = logFor(p.introduced);
+    history[p.introduced][p.known ? "knew" : "learned"]++;
+  }
+  save(HISTORY_KEY, history);
+}
+
+// How far apart a word's reviews have grown says how well it has stuck.
+const STAGES = [
+  { key: "mastered", label: "Mastered", minBox: 5 },  // a month or more between reviews
+  { key: "familiar", label: "Familiar", minBox: 3 },  // a week or two
+  { key: "learning", label: "Learning", minBox: 0 },  // still coming back within days
+];
+function stageOf(p) { return STAGES.find(s => (p.box || 0) >= s.minBox).key; }
+function stageCounts() {
+  const counts = { mastered: 0, familiar: 0, learning: 0, unseen: 0 };
+  for (const w of VOCAB) counts[progress[w.id] ? stageOf(progress[w.id]) : "unseen"]++;
+  return counts;
+}
+
+function learnedTodayWords() {
+  const day = todayKey();
+  return VOCAB.filter(w => progress[w.id] && progress[w.id].introduced === day && !progress[w.id].known);
+}
+
+// What tomorrow holds, so finishing today ends on something to come back to.
+function tomorrowForecast() {
+  const end = new Date();
+  end.setHours(0, 0, 0, 0);
+  end.setDate(end.getDate() + 2);  // midnight at the end of tomorrow
+  const reviews = Object.values(progress).filter(p => p.due < end.getTime()).length;
+  const fresh = Math.min(settings.newPerDay, VOCAB.filter(w => !progress[w.id]).length);
+  return { reviews, fresh };
+}
+
+function plural(n, one, many = one + "s") { return `${n} ${n === 1 ? one : many}`; }
+
+function chips(words) {
+  return `<div class="chips" dir="rtl">${words.map(w =>
+    `<span class="chip" title="${esc(w.en)}">${esc(w.ar)}</span>`).join("")}</div>`;
+}
+
+function planStep(n, title, state, detail, extra = "") {
+  return `
+    <li class="plan-step ${state}">
+      <span class="plan-mark">${state === "done" ? "✓" : n}</span>
+      <div class="plan-body">
+        <b>${title}</b>
+        <span class="muted">${detail}</span>
+        ${extra}
+      </div>
+    </li>`;
+}
+
 function renderToday() {
   sessionEl.classList.add("hidden");
   todaySummary.classList.remove("hidden");
   const due = dueWords();
   const budget = Math.max(0, settings.newPerDay - introducedToday());
   const fresh = newWords(budget);
-  const learned = Object.keys(progress).length;
-  const pct = Math.round(100 * learned / VOCAB.length);
+  const log = logFor();
+  const done = !due.length && !fresh.length;
+  const started = log.reviewed + log.learned + log.knew > 0;
+
+  const reviewStep = due.length
+    ? planStep(1, "Review", "todo",
+        `${plural(due.length, "word")} you've seen before` + (log.reviewed ? ` · ${log.reviewed} done` : ""))
+    : planStep(1, "Review", "done",
+        log.reviewed ? `${plural(log.reviewed, "word")} reviewed` : "Nothing due today");
+
+  const learnedToday = learnedTodayWords();
+  const unseenLeft = newWords(1).length;
+  const newStep = fresh.length
+    ? planStep(2, "New words", "todo",
+        `${plural(fresh.length, "new word")} for today` + (learnedToday.length ? ` · ${learnedToday.length} done` : ""),
+        chips(fresh))
+    : planStep(2, "New words", "done",
+        learnedToday.length ? `${plural(learnedToday.length, "new word")} learned`
+          : unseenLeft ? "None today" : "You've started every word 🎉",
+        learnedToday.length ? chips(learnedToday) : "");
+
+  const t = tomorrowForecast();
   todaySummary.innerHTML = `
     <div class="card hero">
-      <div class="hero-ar" dir="rtl">يلا نتعلم!</div>
-      <p class="muted">Let's learn — your daily Levantine session.</p>
-      <div class="stats">
-        <div class="stat"><b>${fresh.length}</b><span>new words</span></div>
-        <div class="stat"><b>${due.length}</b><span>reviews due</span></div>
-        <div class="stat"><b>${learned}/${VOCAB.length}</b><span>words started</span></div>
-      </div>
-      <div class="progressbar"><div style="width:${pct}%"></div></div>
-      ${fresh.length + due.length
-        ? `<button class="btn primary big" id="btn-start">Start session</button>`
-        : `<p class="done-msg">كل شي خلص لليوم — all done for today! 🎉<br>
-           <span class="muted">Come back tomorrow, or browse Words and Texts.</span></p>
-           ${newWords(1).length
-             ? `<button class="btn primary" id="btn-more">Learn ${settings.newPerDay} more words</button>`
-             : ""}`}
-    </div>`;
+      ${done
+        ? `<div class="big-check">✓</div>
+           <div class="hero-ar" dir="rtl">كل شي خلص لليوم</div>
+           <p class="muted">That's everything for today.</p>`
+        : `<div class="hero-ar" dir="rtl">يلا نتعلم!</div>
+           <p class="muted">Let's learn — today's session has two parts.</p>`}
+      <ol class="plan">${reviewStep}${newStep}</ol>
+      ${done
+        ? `<p class="tomorrow">Tomorrow: ${plural(t.reviews, "review")}${
+             t.fresh ? ` + ${plural(t.fresh, "new word")}` : ""}.</p>
+           ${unseenLeft
+             ? `<button class="btn ghost" id="btn-more">Extra: learn ${settings.newPerDay} more words</button>`
+             : ""}`
+        : `<button class="btn primary big" id="btn-start">${started ? "Continue" : "Start"} — ${
+             due.length ? "review" : "new words"}</button>`}
+    </div>
+    ${progressCard()}`;
   const start = document.getElementById("btn-start");
-  if (start) start.onclick = () => startSession([...due, ...fresh]);
+  if (start) start.onclick = () => startSession(due, fresh);
   const more = document.getElementById("btn-more");
-  if (more) more.onclick = () => startSession(newWords(settings.newPerDay));
+  if (more) more.onclick = () => startSession([], newWords(settings.newPerDay));
 }
 
-let queue = [], sessionTotal = 0;
+function progressCard() {
+  const s = streak();
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(`<span class="day${activeOn(dayKey(d)) ? " on" : ""}${i === 0 ? " today" : ""}" title="${dayKey(d)}">
+      <i></i>${d.toLocaleDateString("en", { weekday: "narrow" })}</span>`);
+  }
+  const c = stageCounts();
+  const seg = key => c[key]
+    ? `<div class="seg ${key}" style="flex:${c[key]}" title="${c[key]} ${key}"></div>` : "";
+  const legend = [...STAGES.map(st => [st.key, st.label]), ["unseen", "Not started"]]
+    .map(([key, label]) => `<span><i class="sw ${key}"></i>${label} <b>${c[key]}</b></span>`).join("");
+  return `
+    <div class="card progress-card">
+      <div class="pc-head">
+        <b>Your progress</b>
+        <span class="streak">${s ? `🔥 ${plural(s, "day")} in a row` : "Start a streak today"}</span>
+      </div>
+      <div class="week">${days.join("")}</div>
+      <div class="stagebar">${seg("mastered")}${seg("familiar")}${seg("learning")}${seg("unseen")}</div>
+      <div class="legend">${legend}</div>
+    </div>`;
+}
 
-function startSession(words) {
-  queue = words.slice();
-  sessionTotal = queue.length;
+// The session runs as phases — reviews, then new words — each with its own
+// count, so "3 of 8" means three of today's eight new words, not three cards
+// of some total that grows as you go.
+let phases = [], phaseIx = 0, stats = null;
+
+const PHASE_LABEL = { review: "Review", new: "New words" };
+
+function startSession(due, fresh) {
+  // Counts are the day's, not this sitting's: coming back to a session you
+  // left after three of eight new words picks up at 3/8, not 0/5.
+  const log = logFor();
+  const learned = learnedTodayWords().length;
+  phases = [];
+  if (due.length) phases.push({ kind: "review", queue: due.slice(), total: log.reviewed + due.length, done: log.reviewed });
+  if (fresh.length) phases.push({ kind: "new", queue: fresh.slice(), total: learned + fresh.length, done: learned });
+  phaseIx = 0;
+  stats = { reviewed: 0, recalled: 0, learned: [], knew: [], missed: new Set() };
   todaySummary.classList.add("hidden");
   sessionEl.classList.remove("hidden");
   nextCard();
 }
 
+function sessionSteps() {
+  return `<div class="steps">${phases.map((ph, i) => `
+    <span class="step${i < phaseIx ? " done" : i === phaseIx ? " current" : ""}">
+      ${i < phaseIx ? "✓ " : ""}${PHASE_LABEL[ph.kind]} ${ph.done}/${ph.total}
+    </span>`).join("")}</div>`;
+}
+
 function nextCard() {
-  if (!queue.length) { endSession(); return; }
-  const word = queue[0];
+  const phase = phases[phaseIx];
+  if (!phase.queue.length) {
+    phaseIx++;
+    if (phaseIx < phases.length) phaseBreak(); else endSession();
+    return;
+  }
+  const word = phase.queue[0];
   const isNew = !progress[word.id];
-  const doneCount = sessionTotal - queue.length;
+  const badge = stats.missed.has(word.id) ? '<span class="badge again">again</span>'
+    : isNew ? '<span class="badge">new word</span>'
+    : '<span class="badge review">review</span>';
   sessionEl.innerHTML = `
     <div class="session-top">
-      <div class="progressbar slim"><div style="width:${Math.round(100 * doneCount / sessionTotal)}%"></div></div>
-      <span class="muted">${doneCount}/${sessionTotal}</span>
+      ${sessionSteps()}
       <button class="btn ghost" id="btn-quit">End</button>
     </div>
+    <div class="progressbar slim"><div style="width:${Math.round(100 * phase.done / phase.total)}%"></div></div>
     <div class="card flashcard" id="flashcard">
-      ${isNew ? '<span class="badge">new word</span>' : '<span class="badge review">review</span>'}
+      ${badge}
       <div class="fc-ar" dir="rtl">${esc(word.ar)}</div>
       ${hasClip(word)
         ? `<button class="btn audio" id="fc-audio" title="Listen">🔊</button>`
@@ -329,7 +498,7 @@ function nextCard() {
       <div class="grade hidden" id="fc-grade">
         <button class="btn grade-again">Again</button>
         <button class="btn grade-good">Good</button>
-        <button class="btn grade-easy">Easy</button>
+        <button class="btn grade-easy">${isNew ? "Knew it" : "Easy"}</button>
       </div>
     </div>`;
   document.getElementById("btn-quit").onclick = renderToday;
@@ -352,37 +521,94 @@ function nextCard() {
 const KNOWN_BOX = 4;
 
 function grade(word, quality) {
+  const phase = phases[phaseIx];
   const isNew = !progress[word.id];
   const p = progress[word.id] || { box: 0, introduced: todayKey() };
-  queue.shift();
+  phase.queue.shift();
   if (isNew && quality === 2) {
-    // Already known: it frees its slot in today's budget, so pull in the next
-    // unseen word to take its place and the session keeps moving forward.
+    // Already known: it was never really taught, so it doesn't count toward
+    // today's new words — the next unseen word takes its slot and the target
+    // stays where it was.
     p.known = true;
     p.box = KNOWN_BOX;
     p.due = Date.now() + INTERVALS[p.box] * DAY_MS;
-    const next = newWords(1, [word, ...queue]);
-    if (next.length) { queue.push(next[0]); sessionTotal++; }
+    stats.knew.push(word);
+    bump("knew");
+    const next = newWords(1, [word, ...phase.queue]);
+    if (next.length) phase.queue.push(next[0]); else phase.total--;
   } else if (quality === 0) {
     delete p.known;
     p.box = 1;
     p.due = Date.now(); // seen again later this session
-    queue.push(word);   // re-queue at the end
+    phase.queue.push(word);   // re-queue at the end of this part
+    stats.missed.add(word.id);
   } else {
     p.box = Math.min(INTERVALS.length - 1, (p.box || 0) + quality);
     p.due = Date.now() + INTERVALS[p.box] * DAY_MS;
+    phase.done++;
+    if (phase.kind === "review") {
+      stats.reviewed++;
+      bump("reviewed");
+      if (!stats.missed.has(word.id)) { stats.recalled++; bump("recalled"); }
+    } else {
+      stats.learned.push(word);
+      bump("learned");
+    }
   }
   progress[word.id] = p;
   save(STORE_KEY, progress);
   nextCard();
 }
 
-function endSession() {
+// A pause between the two parts: the reviews are finished and say so, before
+// the new words begin.
+function phaseBreak() {
+  const next = phases[phaseIx];
   sessionEl.innerHTML = `
+    <div class="session-top">${sessionSteps()}</div>
     <div class="card hero">
+      <div class="big-check">✓</div>
+      <h2>Reviews done</h2>
+      <p>${plural(stats.reviewed, "word")} reviewed — ${stats.recalled} remembered first time.</p>
+      <p class="muted">Next: ${plural(next.queue.length, "new word")}.</p>
+      <div class="actions">
+        <button class="btn primary big" id="btn-next">Start new words</button>
+        <button class="btn ghost" id="btn-later">Later</button>
+      </div>
+    </div>`;
+  document.getElementById("btn-next").onclick = nextCard;
+  document.getElementById("btn-later").onclick = renderToday;
+}
+
+function endSession() {
+  const allDone = !dueWords().length && !newWords(Math.max(0, settings.newPerDay - introducedToday())).length;
+  const s = streak();
+  const t = tomorrowForecast();
+  const recap = [];
+  if (stats.reviewed) recap.push(`<div class="stat"><b>${stats.reviewed}</b><span>reviewed</span></div>`);
+  if (stats.learned.length) recap.push(`<div class="stat"><b>${stats.learned.length}</b><span>new words learned</span></div>`);
+  if (stats.knew.length) recap.push(`<div class="stat"><b>${stats.knew.length}</b><span>already knew</span></div>`);
+  sessionEl.innerHTML = `
+    <div class="card hero closure">
+      <div class="big-check">✓</div>
       <div class="hero-ar" dir="rtl">يعطيك العافية!</div>
-      <p>Session finished — ${sessionTotal} card${sessionTotal === 1 ? "" : "s"} done.</p>
-      <button class="btn primary" id="btn-back">Back</button>
+      <h2>${allDone ? "Today's session is complete" : "Session finished"}</h2>
+      <div class="stats">${recap.join("")}</div>
+      ${stats.reviewed
+        ? `<p class="muted">${stats.recalled} of ${stats.reviewed} reviews remembered first time.</p>` : ""}
+      ${stats.learned.length ? `
+        <div class="learned">
+          <h3>Learned today</h3>
+          ${stats.learned.map(w => `
+            <div class="learned-row">
+              <span class="w-ar" dir="rtl">${esc(w.ar)}</span>
+              <span class="w-en">${esc(w.en)}</span>
+            </div>`).join("")}
+        </div>` : ""}
+      ${s ? `<p class="streak">🔥 ${plural(s, "day")} in a row</p>` : ""}
+      ${allDone ? `<p class="tomorrow">Tomorrow: ${plural(t.reviews, "review")}${
+        t.fresh ? ` + ${plural(t.fresh, "new word")}` : ""}.</p>` : ""}
+      <button class="btn primary" id="btn-back">Done</button>
     </div>`;
   document.getElementById("btn-back").onclick = renderToday;
 }
@@ -593,7 +819,9 @@ function initSettings() {
   document.getElementById("btn-reset").onclick = () => {
     if (confirm("Reset all learning progress? This cannot be undone.")) {
       progress = {};
+      history = {};
       save(STORE_KEY, progress);
+      save(HISTORY_KEY, history);
       renderToday();
       renderWords();
     }

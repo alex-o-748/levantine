@@ -7,8 +7,13 @@ the dialect of Jordan, Palestine, Lebanon, and Syria — rather than Modern Stan
 
 - **Daily words** — ~150 curated everyday conversational words and phrases
   (Arabic script, transliteration, English), introduced a few per day as
-  flashcards with simple spaced repetition (Leitner boxes). Progress is saved
-  in your browser (`localStorage`) — no account, no server.
+  flashcards with simple spaced repetition (Leitner boxes). Each day is a
+  two-part session with an end: first the words due for review, then today's
+  new words, each with its own count. It finishes on a recap (what you
+  reviewed, the words you learned, what tomorrow holds), and the Today tab
+  shows a streak, the last seven days, and how many words are learning,
+  familiar or mastered. Progress is saved in your browser (`localStorage`) —
+  no account, no server.
 - **Texts with a listening focus** — short Levantine dialogues and monologues.
   In *listening mode* the transcript is blurred: play a line, try to understand
   it by ear, then tap to reveal the Arabic (and optionally the translation).
