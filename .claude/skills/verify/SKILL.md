@@ -15,10 +15,15 @@ python3 -m http.server 8090 &   # from the repo root
 
 ## Flows worth driving
 
-- **Today tab**: `#btn-start` → flashcard front (`.fc-ar`) → `#fc-reveal` →
-  grade buttons (`.grade-again` re-queues the card; counter in
-  `.session-top .muted`). Reload the page and confirm `#today-summary`
-  still shows started words / due reviews (localStorage persistence).
+- **Today tab**: `#today-summary` lists the plan (`.plan-step`, `.done` once a
+  part is finished). `#btn-start` → flashcard front (`.fc-ar`) → `#fc-reveal`
+  → grade buttons (`.grade-again` re-queues the card within its part;
+  per-part counters are the `.step` pills in `.session-top`). Reviews come
+  first; with new words still to go, `#btn-next` on the break card starts
+  them. The last card leads to the recap, `#btn-back` back to the summary.
+  Seed `yalla.progress.v1` in `addInitScript` with past-due entries to get a
+  review part. Reload and confirm the summary and `.progress-card` survive
+  (`yalla.history.v1` holds the per-day counts).
 - **Words tab**: `#word-search`, speaker button `[data-act="audio"]`,
   Wiktionary modal `[data-act="wik"]` → `#modal-body`.
 - **Texts tab**: open a `.text-card`; in listening mode all `.line-ar` have
