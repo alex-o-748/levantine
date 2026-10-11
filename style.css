@@ -370,6 +370,28 @@ main { max-width: 680px; margin: 0 auto; padding: 1.2rem 1rem 4rem; }
 .voice-hint { font-size: .82rem; color: var(--muted); padding: .5rem 0; }
 .voice-hint.warn { color: var(--danger); }
 .about { margin-top: 1.5rem; font-size: .88rem; color: var(--muted); }
+.setting-block { padding: .9rem 0; border-bottom: 1px solid var(--line); }
+.setting-block h3 { font-size: 1rem; margin-bottom: .3rem; }
+.setting-block > p { font-size: .88rem; margin-bottom: .8rem; }
+
+/* ——— Daily reminder (Settings, and the end-of-session prompt) ——— */
+.reminder { display: grid; gap: .7rem; }
+.reminder-time { display: flex; align-items: center; gap: .6rem; font-weight: 600; }
+.reminder-time input {
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  padding: .35rem .6rem;
+}
+.reminder-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.rem-status { font-size: .85rem; }
+.rem-status:empty { display: none; }
+.reminder-prompt { margin-top: 1rem; display: grid; gap: .6rem; }
+.reminder-prompt > p { font-size: .9rem; }
+.reminder-prompt #reminder-dismiss { justify-self: start; }
+.streak.at-risk { margin-top: .6rem; }
 
 /* ——— Modal ——— */
 .modal {
