@@ -14,6 +14,15 @@ the dialect of Jordan, Palestine, Lebanon, and Syria — rather than Modern Stan
   shows a streak, the last seven days, and how many words are learning,
   familiar or mastered. Progress is saved in your browser (`localStorage`) —
   no account, no server.
+- **Daily reminder** — pick a time, and add a daily event with an alert to
+  Google Calendar or any calendar that takes an `.ics` file (Apple, Outlook).
+  With no server there is nothing to send a push from, so a calendar event is
+  the reminder that reaches you with the app closed. Optional browser
+  notifications are the backup: they fire only while the app is open in a tab,
+  once a day, and only if today's session isn't finished, saying what's waiting
+  ("🔥 Keep your 5-day streak — 6 reviews + 8 new words"). The Today tab warns
+  when a streak will end at midnight, and the first finished session offers to
+  set the reminder up.
 - **Texts with a listening focus** — short Levantine dialogues and monologues.
   In *listening mode* the transcript is blurred: play a line, try to understand
   it by ear, then tap to reveal the Arabic (and optionally the translation).
@@ -132,6 +141,7 @@ Deploy from a branch*, pick the branch and `/ (root)`.
 | `data.js` | The vocabulary (`VOCAB`) and listening texts (`TEXTS`) |
 | `app.js` | Flashcards, spaced repetition, audio, Wiktionary API client |
 | `style.css` | Styling (light/dark, RTL-aware) |
+| `sw.js` | Service worker for the reminder notification only (Android requires one); caches nothing |
 | `tools/fetch-commons-audio.py` | Fetch a Lingua Libre speaker's recordings from Commons into `corpus/` |
 | `tools/build_audio.py` | Turn `corpus/` into the clips the app ships (`audio/` + manifest) |
 | `tools/make_review.py` | Build a listening-review page for every clip |

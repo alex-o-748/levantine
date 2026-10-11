@@ -13,7 +13,13 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const HISTORY_KEY = "yalla.history.v1";
 
 let progress = load(STORE_KEY, {});          // { [wordId]: {box, due} }
-let settings = load(SETTINGS_KEY, { newPerDay: 8, translit: true });
+let settings = load(SETTINGS_KEY, {
+  newPerDay: 8, translit: true,
+  reminderTime: "19:00",        // when the daily reminder goes off, local time
+  reminderNotify: false,        // in-app notifications switched on
+  reminderCalendarTime: null,   // the time last added to a calendar, if any
+  reminderAsked: false,         // the end-of-session prompt has been answered
+});
 // What each day's sessions got through: { [day]: {reviewed, recalled, learned, knew} }.
 // It is what lets a session end on "here's what today added up to" and the
 // Today tab show a streak, rather than one undifferentiated stream of cards.
@@ -50,6 +56,11 @@ function newWords(limit, exclude = []) {
 // same handful of words with nothing new to move on to.
 function introducedToday() {
   return Object.values(progress).filter(p => p.introduced === todayKey() && !p.known).length;
+}
+// What is still left of today's session: the reviews due and the new words the
+// daily budget has room for. Empty on both counts means today is done.
+function todaysWork() {
+  return { due: dueWords(), fresh: newWords(Math.max(0, settings.newPerDay - introducedToday())) };
 }
 
 // ————————————————————— Recordings —————————————————————
@@ -360,9 +371,7 @@ function planStep(n, title, state, detail, extra = "") {
 function renderToday() {
   sessionEl.classList.add("hidden");
   todaySummary.classList.remove("hidden");
-  const due = dueWords();
-  const budget = Math.max(0, settings.newPerDay - introducedToday());
-  const fresh = newWords(budget);
+  const { due, fresh } = todaysWork();
   const log = logFor();
   const done = !due.length && !fresh.length;
   const started = log.reviewed + log.learned + log.knew > 0;
@@ -385,6 +394,8 @@ function renderToday() {
         learnedToday.length ? chips(learnedToday) : "");
 
   const t = tomorrowForecast();
+  // A run that today hasn't added to yet is a run that ends at midnight.
+  const atRisk = !started && streak();
   todaySummary.innerHTML = `
     <div class="card hero">
       ${done
@@ -392,7 +403,8 @@ function renderToday() {
            <div class="hero-ar" dir="rtl">كل شي خلص لليوم</div>
            <p class="muted">That's everything for today.</p>`
         : `<div class="hero-ar" dir="rtl">يلا نتعلم!</div>
-           <p class="muted">Let's learn — today's session has two parts.</p>`}
+           <p class="muted">Let's learn — today's session has two parts.</p>
+           ${atRisk ? `<p class="streak at-risk">🔥 Practise today to keep your ${atRisk}-day streak.</p>` : ""}`}
       <ol class="plan">${reviewStep}${newStep}</ol>
       ${done
         ? `<p class="tomorrow">Tomorrow: ${plural(t.reviews, "review")}${
@@ -581,7 +593,8 @@ function phaseBreak() {
 }
 
 function endSession() {
-  const allDone = !dueWords().length && !newWords(Math.max(0, settings.newPerDay - introducedToday())).length;
+  const work = todaysWork();
+  const allDone = !work.due.length && !work.fresh.length;
   const s = streak();
   const t = tomorrowForecast();
   const recap = [];
@@ -609,8 +622,22 @@ function endSession() {
       ${allDone ? `<p class="tomorrow">Tomorrow: ${plural(t.reviews, "review")}${
         t.fresh ? ` + ${plural(t.fresh, "new word")}` : ""}.</p>` : ""}
       <button class="btn primary" id="btn-back">Done</button>
-    </div>`;
+    </div>
+    ${settings.reminderAsked ? "" : `
+    <div class="card reminder-prompt" id="recap-reminder">
+      <b>Come back tomorrow?</b>
+      <p class="muted">A few minutes every day is what makes words stick. Pick a time and get a nudge.</p>
+      <div class="reminder-mount"></div>
+      <button class="btn ghost small" id="reminder-dismiss">Not now</button>
+    </div>`}`;
   document.getElementById("btn-back").onclick = renderToday;
+  const dismiss = document.getElementById("reminder-dismiss");
+  if (dismiss) dismiss.onclick = () => {
+    settings.reminderAsked = true;
+    save(SETTINGS_KEY, settings);
+    document.getElementById("recap-reminder").remove();
+  };
+  refreshReminders();
 }
 
 // ————————————————————— Words browser —————————————————————
@@ -815,6 +842,7 @@ function initSettings() {
 
   perDay.onchange = () => { settings.newPerDay = +perDay.value; save(SETTINGS_KEY, settings); renderToday(); };
   translit.onchange = () => { settings.translit = translit.checked; save(SETTINGS_KEY, settings); renderWords(); };
+  refreshReminders();
 
   document.getElementById("btn-reset").onclick = () => {
     if (confirm("Reset all learning progress? This cannot be undone.")) {
@@ -826,6 +854,253 @@ function initSettings() {
       renderWords();
     }
   };
+}
+
+// ————————————————————— Daily reminder —————————————————————
+
+// Coming back every day is most of what learning words takes, and a tab can't
+// tap you on the shoulder: this app has no server, so it has nothing to send a
+// push from. The reminder that reaches a learner with the app closed is one
+// their own calendar keeps — a daily event with an alert, at a time they pick.
+// Notifications from the app are the backup: they can only fire while it is
+// open somewhere (a pinned tab, a window left in the background), and they only
+// fire on days when there is still something left to do.
+
+const REMINDER_SENT_KEY = "yalla.reminder.sent";   // the day the last one went out
+const EVENT_TITLE = "يلا — Levantine Arabic practice";
+const EVENT_MINUTES = 10;
+
+const pad2 = n => String(n).padStart(2, "0");
+function appUrl() {
+  return /^https?:$/.test(location.protocol) ? location.origin + location.pathname : "";
+}
+function eventDetails() {
+  return "Your daily session: the words due for review, then today's new words." +
+    (appUrl() ? "\n" + appUrl() : "");
+}
+function minutesOf(time) { const [h, m] = time.split(":").map(Number); return h * 60 + m; }
+function pastReminderTime(now = new Date()) {
+  return now.getHours() * 60 + now.getMinutes() >= minutesOf(settings.reminderTime);
+}
+// The next time the reminder goes off: today if that's still ahead, else tomorrow.
+function nextReminder(now = new Date()) {
+  const d = new Date(now);
+  d.setHours(0, minutesOf(settings.reminderTime), 0, 0);
+  if (d <= now) d.setDate(d.getDate() + 1);
+  return d;
+}
+
+// Floating local time (no zone): the event stays at 19:00 wherever the learner
+// is and through daylight-saving changes, which is what "every evening" means.
+function localStamp(d) {
+  return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}T${pad2(d.getHours())}${pad2(d.getMinutes())}00`;
+}
+
+function googleCalendarUrl() {
+  const start = nextReminder();
+  const end = new Date(start.getTime() + EVENT_MINUTES * 60000);
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: EVENT_TITLE,
+    details: eventDetails(),
+    dates: `${localStamp(start)}/${localStamp(end)}`,
+    recur: "RRULE:FREQ=DAILY",
+  });
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (tz) params.set("ctz", tz);
+  return "https://calendar.google.com/calendar/render?" + params;
+}
+
+function icsEscape(s) {
+  return s.replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/([,;])/g, "\\$1");
+}
+// RFC 5545 caps a line at 75 octets, and the Arabic title runs past that in
+// UTF-8; a continuation line starts with a space, which counts as one of them.
+function icsFold(line) {
+  const enc = new TextEncoder();
+  const out = [];
+  let cur = "", n = 0;
+  for (const ch of line) {
+    const len = enc.encode(ch).length;
+    if (n + len > (out.length ? 74 : 75)) { out.push(cur); cur = ""; n = 0; }
+    cur += ch;
+    n += len;
+  }
+  out.push(cur);
+  return out.join("\r\n ");
+}
+
+function icsFile() {
+  const start = nextReminder();
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Yalla//Levantine Arabic//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    // A fixed UID, so adding it again at a new time can update the old event
+    // rather than stack a second one beside it (calendars that honour it do).
+    "UID:daily-practice@yalla-levantine",
+    "DTSTAMP:" + new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, ""),
+    "DTSTART:" + localStamp(start),
+    `DURATION:PT${EVENT_MINUTES}M`,
+    "RRULE:FREQ=DAILY",
+    "SUMMARY:" + icsEscape(EVENT_TITLE),
+    "DESCRIPTION:" + icsEscape(eventDetails()),
+    ...(appUrl() ? ["URL:" + appUrl()] : []),
+    "BEGIN:VALARM",
+    "ACTION:DISPLAY",
+    "DESCRIPTION:" + icsEscape("Time for Arabic — يلا!"),
+    "TRIGGER:PT0M",
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ];
+  return lines.map(icsFold).join("\r\n") + "\r\n";
+}
+
+function downloadIcs() {
+  const url = URL.createObjectURL(new Blob([icsFile()], { type: "text/calendar;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "yalla-daily-practice.ics";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// Android only lets a page show a notification through a service worker, so
+// one is registered for that alone (see sw.js). It isn't available from file://.
+let swReg = null;
+if ("serviceWorker" in navigator && appUrl()) {
+  navigator.serviceWorker.register("sw.js").then(r => { swReg = r; }).catch(() => {});
+}
+function canNotify() { return "Notification" in window; }
+
+async function notify(title, body) {
+  const opts = { body, tag: "yalla-daily", lang: "en" };
+  try {
+    if (swReg) {
+      await navigator.serviceWorker.ready;
+      return await swReg.showNotification(title, opts);
+    }
+    const n = new Notification(title, opts);
+    n.onclick = () => { window.focus(); n.close(); };
+  } catch { /* blocked or unsupported: the calendar is the reminder that counts */ }
+}
+
+// Only when there's something to do: a learner who already finished today gets
+// left alone, and a nudge says what is waiting rather than just "practise".
+function reminderMessage() {
+  const { due, fresh } = todaysWork();
+  if (!due.length && !fresh.length) return null;
+  const parts = [];
+  if (due.length) parts.push(plural(due.length, "review"));
+  if (fresh.length) parts.push(plural(fresh.length, "new word"));
+  const s = streak();
+  const title = activeOn(todayKey()) ? "Finish today's Arabic"
+    : s ? `🔥 Keep your ${s}-day streak`
+    : "يلا! Time for Arabic";
+  return { title, body: `Waiting for you: ${parts.join(" + ")}.` };
+}
+
+function markReminderSent() { try { localStorage.setItem(REMINDER_SENT_KEY, todayKey()); } catch {} }
+
+// Polled rather than scheduled with one long timeout: a laptop asleep through
+// 19:00 still gets its reminder when it wakes, and a day is only ever nudged
+// once however many tabs are open, because they share the "sent" mark.
+function checkReminder() {
+  if (!settings.reminderNotify || !canNotify() || Notification.permission !== "granted") return;
+  if (!pastReminderTime() || localStorage.getItem(REMINDER_SENT_KEY) === todayKey()) return;
+  markReminderSent();
+  // Someone in the app after the reminder time already came back; nudging them
+  // the moment they switch tabs would be nagging.
+  if (document.visibilityState === "visible" && document.hasFocus()) return;
+  const msg = reminderMessage();
+  if (msg) notify(msg.title, msg.body);
+}
+
+function reminderStatus() {
+  const notes = [];
+  if (settings.reminderCalendarTime) {
+    notes.push(settings.reminderCalendarTime === settings.reminderTime
+      ? `✓ In your calendar at ${settings.reminderCalendarTime}.`
+      : `Your calendar still says ${settings.reminderCalendarTime} — add it again for the new time, and delete the old event if it stays.`);
+  }
+  if (canNotify()) {
+    if (Notification.permission === "denied")
+      notes.push("Notifications are blocked for this site — allow them in your browser's site settings to use them.");
+    else if (settings.reminderNotify)
+      notes.push(`✓ Notifications on: at ${settings.reminderTime}, if today's session isn't done and the app is open in a tab.`);
+  }
+  return notes.join(" ");
+}
+
+function mountReminder(el) {
+  el.innerHTML = `
+    <div class="reminder">
+      <label class="reminder-time">Every day at
+        <input type="time" class="rem-time" value="${esc(settings.reminderTime)}" required>
+      </label>
+      <div class="reminder-actions">
+        <button class="btn small rem-google" title="Adds a daily event to Google Calendar">+ Google Calendar</button>
+        <button class="btn small rem-ics" title="A calendar file for Apple Calendar, Outlook and others">+ Apple / Outlook (.ics)</button>
+      </div>
+      ${canNotify() ? `
+      <label class="toggle rem-notify-row">
+        <input type="checkbox" class="rem-notify"${settings.reminderNotify && Notification.permission === "granted" ? " checked" : ""}
+          ${Notification.permission === "denied" ? " disabled" : ""}>
+        Also notify me from the app (only while it's open in a tab)
+      </label>` : ""}
+      <p class="rem-status muted">${reminderStatus()}</p>
+    </div>`;
+
+  const answered = () => { settings.reminderAsked = true; save(SETTINGS_KEY, settings); };
+  const addedToCalendar = () => {
+    settings.reminderCalendarTime = settings.reminderTime;
+    answered();
+    refreshReminders();
+  };
+
+  el.querySelector(".rem-time").onchange = e => {
+    if (!/^\d\d:\d\d$/.test(e.target.value)) return;
+    settings.reminderTime = e.target.value;
+    // Moving the time to one already past shouldn't fire a nudge at someone
+    // who is in the app setting it.
+    if (pastReminderTime()) markReminderSent();
+    save(SETTINGS_KEY, settings);
+    el.querySelector(".rem-status").textContent = reminderStatus();
+    refreshReminders(el);   // not this one: re-rendering would steal the focus mid-edit
+  };
+  el.querySelector(".rem-google").onclick = () => {
+    window.open(googleCalendarUrl(), "_blank", "noopener");
+    addedToCalendar();
+  };
+  el.querySelector(".rem-ics").onclick = () => { downloadIcs(); addedToCalendar(); };
+
+  const box = el.querySelector(".rem-notify");
+  if (box) box.onchange = async () => {
+    if (box.checked) {
+      const perm = Notification.permission === "default"
+        ? await Notification.requestPermission() : Notification.permission;
+      settings.reminderNotify = perm === "granted";
+      if (settings.reminderNotify) {
+        if (pastReminderTime()) markReminderSent();
+        notify("Reminders are on", `You'll get a nudge at ${settings.reminderTime} on days you haven't finished.`);
+      }
+    } else {
+      settings.reminderNotify = false;
+    }
+    answered();
+    refreshReminders();
+  };
+}
+
+// The same controls sit in Settings and at the end of a session; keep them in step.
+function refreshReminders(except = null) {
+  document.querySelectorAll(".reminder-mount").forEach(el => { if (el !== except) mountReminder(el); });
 }
 
 // ————————————————————— Boot —————————————————————
@@ -848,4 +1123,7 @@ Promise.all([clipsReady, synthReady]).then(() => {
   renderTextList();
   initSettings();
   renderToday();
+  setInterval(checkReminder, 60 * 1000);
+  document.addEventListener("visibilitychange", checkReminder);
+  checkReminder();
 });
