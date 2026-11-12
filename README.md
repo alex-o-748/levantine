@@ -148,6 +148,7 @@ Deploy from a branch*, pick the branch and `/ (root)`.
 | `tools/synth_lines.py` | Synthesise the dialogue lines (`audio/synth/` + manifest) |
 | `tools/synth.json` | Which voice reads each dialogue character |
 | `tools/synth_job.sh` | Run the synthesis on a GPU box / HF Jobs / Colab |
+| `tools/talk_test.py` | Experiment, not part of the app: a local page for judging by ear whether a live voice model can hold a conversation in Levantine (`talk_test.html`, `talk_prompt.txt`) |
 
 ### Where word audio comes from
 

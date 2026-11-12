@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Levantine listening test</title>
+<style>
+  :root { --bg:#faf7f2; --card:#fff; --ink:#1f2328; --mute:#6b7280; --line:#e4dfd6; --accent:#0f766e;
+          --bad:#b42318; --bad-bg:#fde8e6; --good:#0f766e; --good-bg:#dff3ef; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#15171a; --card:#1e2125; --ink:#e8e6e1; --mute:#9aa1ab; --line:#30353b; --accent:#4fd1c0;
+            --bad:#ff8a7a; --bad-bg:#3a1d1a; --good:#4fd1c0; --good-bg:#12332f; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 0 0 10px; }
+  p.lead { color: var(--mute); margin: 0 0 16px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; }
+  label { display:block; font-size:.85rem; color:var(--mute); margin-bottom:4px; }
+  select, input, textarea, button { font: inherit; color: inherit; }
+  select, input, textarea { width:100%; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  textarea { min-height: 120px; font-size:.85rem; }
+  .row { display:grid; grid-template-columns: 2fr 1fr; gap:12px; }
+  .actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:14px; }
+  button { border:1px solid var(--line); background:var(--bg); border-radius:999px; padding:9px 18px; cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  @media (prefers-color-scheme: dark) { button.primary { color:#08201d; } }
+  button:disabled { opacity:.5; cursor:default; }
+  #status { color:var(--mute); font-size:.9rem; }
+  #error { display:none; background:var(--bad-bg); color:var(--bad); border-radius:8px; padding:10px 12px; margin-top:12px; white-space:pre-wrap; overflow-wrap:anywhere; font-size:.9rem; }
+  details { margin-top:12px; } summary { cursor:pointer; color:var(--mute); font-size:.9rem; }
+  #transcript { display:flex; flex-direction:column; gap:8px; min-height:60px; }
+  .turn { max-width:88%; padding:8px 12px; border-radius:12px; border:1px solid var(--line); overflow-wrap:anywhere; }
+  .turn .who { font-size:.72rem; color:var(--mute); text-transform:uppercase; letter-spacing:.04em; }
+  .turn .text { direction: rtl; text-align: right; font-size:1.25rem; line-height:1.7; unicode-bidi: plaintext; }
+  .turn.tutor { align-self:flex-start; }
+  .turn.you { align-self:flex-end; background:var(--bg); }
+  .msa { background:var(--bad-bg); color:var(--bad); border-radius:4px; padding:0 3px; }
+  .dia { background:var(--good-bg); color:var(--good); border-radius:4px; padding:0 3px; }
+  #tally { display:flex; gap:16px; flex-wrap:wrap; font-size:.9rem; margin-bottom:10px; }
+  #tally b { font-variant-numeric: tabular-nums; }
+  .empty { color:var(--mute); font-size:.9rem; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  td { padding:6px 0; border-top:1px solid var(--line); vertical-align:middle; }
+  td:last-child { width:130px; padding-left:10px; }
+  tr:first-child td { border-top:0; }
+  #log { font:12px/1.5 ui-monospace, monospace; color:var(--mute); max-height:160px; overflow:auto; white-space:pre-wrap; }
+  @media (max-width:560px) { .row { grid-template-columns:1fr; } .turn { max-width:100%; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Levantine listening test</h1>
+  <p class="lead">Ten turns with a live voice model, to decide by ear whether it speaks شامي or Modern Standard with an accent. Use headphones. The conversation ends by itself after 10 minutes.</p>
+
+  <section>
+    <div class="row">
+      <div><label for="scenario">Situation</label><select id="scenario"></select></div>
+      <div><label for="voice">Voice</label><input id="voice" value="marin" autocomplete="off"></div>
+    </div>
+    <div class="actions">
+      <button class="primary" id="start">Start talking</button>
+      <button id="end" disabled>End</button>
+      <span id="status">Not connected.</span>
+    </div>
+    <div id="error" role="alert"></div>
+    <details>
+      <summary>Tutor instructions (editable for this run)</summary>
+      <textarea id="prompt" dir="auto" spellcheck="false"></textarea>
+    </details>
+    <details>
+      <summary>Call the provider straight from this browser (no local relay)</summary>
+      <p class="empty">This checks whether a Talk tab could work in the static app. Paste a key to use it; it is kept in memory for this tab only and never stored. Leave empty to go through <code>talk_test.py</code>.</p>
+      <input id="key" type="password" placeholder="sk-…" autocomplete="off">
+    </details>
+  </section>
+
+  <section>
+    <h2>Transcript</h2>
+    <div id="tally">
+      <span>Standard-only words from the tutor: <b id="n-msa">0</b></span>
+      <span>Dialect words from the tutor: <b id="n-dia">0</b></span>
+      <span>Latin-script words from the tutor: <b id="n-lat">0</b></span>
+    </div>
+    <div id="transcript"><p class="empty">Nothing yet. The highlights are a word-list check on the transcript only — your ear is the judge of the audio.</p></div>
+  </section>
+
+  <section>
+    <h2>What to listen for</h2>
+    <table id="checks"></table>
+    <label for="notes" style="margin-top:12px">Notes</label>
+    <textarea id="notes" placeholder="Anything you heard: a classical qāf, an Egyptian turn of phrase, a correction that was wrong…"></textarea>
+    <div class="actions">
+      <button id="copy">Copy report</button>
+      <span id="copied" class="empty"></span>
+    </div>
+  </section>
+
+  <details>
+    <summary>Event log</summary>
+    <div id="log"></div>
+  </details>
+  <audio id="remote" autoplay></audio>
+</main>
+
+<script>
+"use strict";
+const ENDPOINT = "https://api.openai.com/v1/live/sessions";
+const MODEL = "gpt-live-1";
+const MAX_SECONDS = 600;
+const LOOKUP_UNAVAILABLE = "ما قدرت أتأكّد هلأ. إذا بدّك، منحكي عن الموضوع بشكل عام.";
+
+const SCENARIOS = [
+  { id: "free", title: "Free conversation", situation: "" },
+  { id: "intro", title: "Nice to meet you", situation: "Meet the learner for the first time. Exchange names, where you are from and what you do, the way two people would in Amman." },
+  { id: "coffee", title: "A café in Amman", situation: "You work in a neighbourhood café in Amman. Help the learner order a drink, then chat a little." },
+  { id: "market", title: "At the vegetable market", situation: "You sell vegetables and fruit at a market stall. Practise quantities, prices and polite questions." },
+  { id: "taxi", title: "In a taxi", situation: "You are a friendly taxi driver. Ask where the learner is going and make small talk on the way." },
+];
+
+// Words that only Modern Standard uses, and everyday words that only the dialect uses.
+// Both are stored the way norm() leaves them. A transcript check, never a verdict on the audio.
+const MSA = new Set(("ماذا لماذا اين الان اريد نريد تريد يريد هذا هذه هولاء ذلك تلك ليس ليست جدا سوف نحن هل ايضا " +
+  "الذي التي هنا هكذا يوجد استطيع تستطيع يجب شيء شيئا جيد جيدا كثيرا اذهب تذهب نذهب غدا امس").split(" "));
+const DIALECT = new Set(("بدي بدك بدو بدها بدنا بدكم بدهم شو ليش وين قديش هلا هلق هون هيك هاد هاي هدا هادا هدول " +
+  "كتير منيح منيحة كمان بس اشي شي لسا مبارح بكرا بكرة احنا نحنا مش مو عم رح يلا ايش هسا ايوا ماشي طيب شوي " +
+  "عشان منشان لانو انو مين ايمتى امتى").split(" "));
+
+// Arabic letters and their marks, but not ؟ ، ؛ or digits, so «ماذا؟» is still ماذا.
+const LETTERS = /([\u0621-\u0652\u0670\u0671]+)/;
+
+const $ = id => document.getElementById(id);
+const els = { start: $("start"), end: $("end"), status: $("status"), error: $("error"), transcript: $("transcript"), log: $("log") };
+
+function norm(s) {
+  return s.normalize("NFC").replace(/[ً-ْٰـ]/g, "")
+    .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي")
+    .replace(/ؤ/g, "و").replace(/ئ/g, "ي");
+}
+// "msa" | "dia" | null for one Arabic-script token.
+function classify(token) {
+  if (/ً/.test(token)) return "msa";                 // tanwīn: a case ending nobody says
+  const w = norm(token);
+  const bare = w.length > 2 && /^[وف]/.test(w) ? w.slice(1) : null;   // وهذا، فهذا
+  for (const form of bare ? [w, bare] : [w]) {
+    if (MSA.has(form)) return "msa";
+    if (DIALECT.has(form)) return "dia";
+  }
+  return null;
+}
+function analyse(text) {
+  const out = { msa: 0, dia: 0, latin: (text.match(/[A-Za-z]{2,}/g) || []).length, parts: [] };
+  for (const part of text.split(LETTERS)) {
+    if (!part) continue;
+    const kind = LETTERS.test(part) ? classify(part) : null;
+    if (kind) out[kind]++;
+    out.parts.push({ text: part, kind });
+  }
+  return out;
+}
+function esc(s) { return s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+// ---- transcript ----
+let turns = [];              // { who: "tutor" | "you", text, lastMs, el }
+function addDelta(who, delta, startMs) {
+  let turn = turns[turns.length - 1];
+  if (!turn || turn.who !== who) {
+    if (!turns.length) els.transcript.textContent = "";
+    const el = document.createElement("div");
+    el.className = "turn " + who;
+    el.innerHTML = `<div class="who">${who === "tutor" ? "Tutor" : "You"}</div><div class="text"></div>`;
+    els.transcript.appendChild(el);
+    turn = { who, text: "", el };
+    turns.push(turn);
+  }
+  turn.text += delta;
+  const body = turn.el.querySelector(".text");
+  if (who === "tutor") {
+    body.innerHTML = analyse(turn.text).parts
+      .map(p => p.kind ? `<span class="${p.kind}">${esc(p.text)}</span>` : esc(p.text)).join("");
+  } else body.textContent = turn.text;
+  renderTally();
+  turn.el.scrollIntoView({ block: "nearest" });
+}
+function tally() {
+  const sum = { msa: 0, dia: 0, latin: 0 };
+  for (const t of turns) if (t.who === "tutor") { const a = analyse(t.text); sum.msa += a.msa; sum.dia += a.dia; sum.latin += a.latin; }
+  return sum;
+}
+function renderTally() {
+  const t = tally();
+  $("n-msa").textContent = t.msa; $("n-dia").textContent = t.dia; $("n-lat").textContent = t.latin;
+}
+
+// ---- session ----
+let pc = null, channel = null, mic = null, timer = null, startedAt = 0, mode = "relay", usageSeconds = null;
+
+function log(line) { els.log.textContent += line + "\n"; els.log.scrollTop = els.log.scrollHeight; }
+function setStatus(text) { els.status.textContent = text; }
+function showError(text) { els.error.textContent = text; els.error.style.display = text ? "block" : "none"; }
+function uuid() { return crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2); }
+function send(event) {
+  if (!channel || channel.readyState !== "open") return false;
+  channel.send(JSON.stringify(event)); log("→ " + event.type); return true;
+}
+function append(kind, content, delegationId = null) {
+  // The provider caps short instruction updates; Mural bounds them at 1000 characters.
+  return send({ type: `session.${kind}.append`, event_id: uuid(), delegation_id: delegationId, content: content.slice(0, 1000) });
+}
+
+function instructions() {
+  const scenario = SCENARIOS.find(s => s.id === $("scenario").value);
+  const direction = scenario.situation
+    ? `Selected situation: ${scenario.situation} Keep follow-up questions and examples connected to this situation, and build on the learner's answers.`
+    : "Free conversation: follow the learner's interests and the topic they bring up.";
+  return $("prompt").value.trim() + "\n\nConversation direction:\n" + direction;
+}
+function greeting() {
+  const scenario = SCENARIOS.find(s => s.id === $("scenario").value);
+  return scenario.situation
+    ? "Begin now in Levantine Arabic, without waiting for the learner to speak. Open inside the selected situation with one short, specific question. A brief greeting is fine. Then pause and listen."
+    : "Begin this new conversation now, without waiting for the learner to speak. Say «مرحبا!» and ask one short, natural question in Levantine Arabic. Then pause and listen.";
+}
+
+function iceComplete(peer, ms) {
+  if (peer.iceGatheringState === "complete") return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("Timed out gathering network candidates.")), ms);
+    peer.addEventListener("icegatheringstatechange", () => {
+      if (peer.iceGatheringState === "complete") { clearTimeout(timeout); resolve(); }
+    });
+  });
+}
+
+async function createSession(sdp) {
+  const key = $("key").value.trim();
+  mode = key ? "direct" : "relay";
+  const body = JSON.stringify({
+    session: { model: MODEL, instructions: instructions(), input: [], store: false,
+               delegation: { type: "client" }, audio: { output: { voice: $("voice").value.trim() || "marin" } } },
+    transport: { type: "webrtc", sdp },
+  });
+  let response;
+  try {
+    response = await fetch(key ? ENDPOINT : "session", {
+      method: "POST", body,
+      headers: key ? { "Authorization": "Bearer " + key, "Content-Type": "application/json" } : { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    throw new Error(key
+      ? "The browser was not allowed to call the provider directly (most likely a cross-origin block). A static Talk tab would need a relay. Clear the key field to go through talk_test.py instead."
+      : "Could not reach talk_test.py. Is it still running?");
+  }
+  const text = await response.text();
+  let json = null; try { json = JSON.parse(text); } catch {}
+  if (!response.ok) {
+    const message = json && json.error && (json.error.message || json.error.code) || text.slice(0, 400) || "no message";
+    throw new Error(`The provider refused the session (HTTP ${response.status}): ${message}`);
+  }
+  const answer = json && json.transport && json.transport.sdp;
+  if (!answer) throw new Error("The provider's reply had no WebRTC answer in it: " + text.slice(0, 300));
+  return answer;
+}
+
+async function start() {
+  showError(""); els.start.disabled = true; setStatus("Asking for the microphone…");
+  turns = []; usageSeconds = null;
+  els.transcript.innerHTML = '<p class="empty">Connecting…</p>'; renderTally();
+  try {
+    mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+    pc = new RTCPeerConnection();
+    mic.getTracks().forEach(track => pc.addTrack(track, mic));
+    pc.ontrack = event => { $("remote").srcObject = event.streams[0]; };
+    pc.onconnectionstatechange = () => {
+      log("peer: " + pc.connectionState);
+      if (pc && pc.connectionState === "failed") { showError("The audio connection was lost."); stop("connection lost"); }
+    };
+    channel = pc.createDataChannel("oai-events", { ordered: true });
+    channel.onmessage = message => { try { handle(JSON.parse(message.data)); } catch (error) { log("unreadable event"); } };
+    await pc.setLocalDescription(await pc.createOffer());
+    setStatus("Connecting…");
+    await iceComplete(pc, 10000);
+    const answer = await createSession(pc.localDescription.sdp);
+    await pc.setRemoteDescription({ type: "answer", sdp: answer });
+    els.end.disabled = false;
+    setStatus("Connected. Waiting for the tutor…");
+  } catch (error) {
+    showError(error.name === "NotAllowedError" ? "Microphone access was refused." : error.message);
+    stop("failed to start");
+  }
+}
+
+function handle(event) {
+  const type = event.type || "";
+  if (!type.endsWith(".delta")) log("← " + type);
+  switch (type) {
+    case "session.started":
+      startedAt = Date.now();
+      clearInterval(timer);
+      timer = setInterval(tick, 1000); tick();
+      append("instructions", greeting());
+      break;
+    case "session.input_transcript.delta":
+    case "session.output_transcript.delta":
+      if (typeof event.delta === "string") addDelta(type.startsWith("session.input") ? "you" : "tutor", event.delta, event.start_ms);
+      break;
+    case "session.delegation.created": {
+      // The tutor asked the client to look something up. This page has nothing to look up with.
+      const d = event.delegation || {};
+      if (d.target === "client" && d.id) append("commentary", LOOKUP_UNAVAILABLE, d.id);
+      break;
+    }
+    case "session.usage.updated":
+      if (event.usage && Number.isFinite(event.usage.seconds)) usageSeconds = event.usage.seconds;
+      break;
+    case "session.closed":
+      stop(event.reason || "closed by the provider");
+      break;
+    case "error": {
+      const e = event.error || {};
+      showError("The provider reported an error: " + (e.message || e.code || JSON.stringify(e)));
+      break;
+    }
+  }
+}
+
+function tick() {
+  const seconds = Math.floor((Date.now() - startedAt) / 1000);
+  setStatus(`Talking · ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")} · ${mode === "direct" ? "direct from browser" : "via local relay"}`);
+  if (seconds >= MAX_SECONDS) stop("10-minute limit");
+}
+
+function stop(reason) {
+  clearInterval(timer); timer = null;
+  send({ type: "session.close", event_id: uuid() });
+  if (mic) mic.getTracks().forEach(track => track.stop());
+  if (channel) { channel.onmessage = null; try { channel.close(); } catch {} }
+  if (pc) { pc.onconnectionstatechange = null; try { pc.close(); } catch {} }
+  pc = channel = mic = null;
+  els.start.disabled = false; els.end.disabled = true;
+  if (!turns.length) els.transcript.innerHTML = '<p class="empty">Nothing was said.</p>';
+  setStatus("Ended" + (reason ? ` (${reason})` : "") + ".");
+}
+
+// ---- checklist and report ----
+const CHECKS = [
+  "ق is a glottal stop in everyday words (ʾahwe, not qahwa)",
+  "No case endings or tanwīn (marḥaba, not marḥaban)",
+  "بدّي / شو / هلأ rather than أريد / ماذا / الآن",
+  "Present tense with b- (بحكي، بتروح)",
+  "Still in dialect after ten turns — no drift into فصحى, Egyptian or Gulf",
+  "It sounds like one consistent place, not a blend of dialects",
+  "Your transcript keeps your dialect words as you said them",
+  "It corrected a real mistake, and never \"corrected\" valid dialect",
+  "Slow and simple enough for a beginner",
+];
+const ANSWERS = ["—", "yes", "sometimes", "no"];
+$("checks").innerHTML = CHECKS.map((text, i) =>
+  `<tr><td>${esc(text)}</td><td><select data-check="${i}" aria-label="${esc(text)}">${ANSWERS.map(a => `<option>${a}</option>`).join("")}</select></td></tr>`).join("");
+
+function report() {
+  const t = tally();
+  const scenario = SCENARIOS.find(s => s.id === $("scenario").value);
+  const seconds = usageSeconds != null ? Math.round(usageSeconds) : (startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0);
+  const lines = [
+    "Levantine listening test — " + new Date().toISOString().slice(0, 10),
+    `model ${MODEL} · voice ${$("voice").value.trim() || "marin"} · ${scenario.title} · ${mode === "direct" ? "direct from browser" : "local relay"} · ${seconds}s`,
+    `tutor transcript: ${t.msa} standard-only words, ${t.dia} dialect words, ${t.latin} Latin-script words`,
+    "", "LISTENING",
+    ...CHECKS.map((text, i) => `[${document.querySelector(`[data-check="${i}"]`).value}] ${text}`),
+    "", "NOTES", $("notes").value.trim() || "(none)",
+    "", "TRANSCRIPT",
+    ...turns.map(turn => `${turn.who === "tutor" ? "TUTOR" : "YOU"}: ${turn.text.trim()}`),
+  ];
+  return lines.join("\n");
+}
+$("copy").onclick = async () => {
+  const text = report();
+  try { await navigator.clipboard.writeText(text); $("copied").textContent = "Copied."; }
+  catch { $("notes").value = text; $("copied").textContent = "Clipboard unavailable — the report is in the notes box."; }
+};
+
+// ---- wiring ----
+$("scenario").innerHTML = SCENARIOS.map(s => `<option value="${s.id}">${esc(s.title)}</option>`).join("");
+$("scenario").value = "coffee";
+els.start.onclick = start;
+els.end.onclick = () => stop("you ended it");
+fetch("prompt").then(r => r.ok ? r.text() : Promise.reject()).then(text => { $("prompt").value = text.trim(); })
+  .catch(() => showError("Could not load tools/talk_prompt.txt. Open this page through talk_test.py rather than as a file."));
+
+window.talkTest = { handle, analyse, report, instructions };
+</script>
+</body>
+</html>
